@@ -16,6 +16,47 @@ intents = discord.Intents.default()
 intents.message_content = True  # Cần bật nếu bạn muốn đọc nội dung tin nhắn
 bot = commands.Bot(command_prefix="/", intents=intents)
 
+# Bảng ánh xạ tên slash command -> danh sách các channel ID được phép sử dụng
+# Lưu ý: Tên này phải khớp với tên command khi bạn đăng ký chúng (không phân biệt chữ hoa thường)
+slash_command_allowed_channels = {
+    "scl": [123456789012345678],  # Thay bằng ID thực tế của kênh cho lệnh scl_command
+    #"img": [987654321098765432],    # Tương tự với lệnh img_command
+    "girl": [112233445566778899],
+    "anime": [223344556677889900],
+    # Thêm các lệnh slash khác nếu cần.
+    # Nếu một lệnh không có mục mapping ở đây, lệnh đó sẽ không bị hạn chế.
+}
+
+# Định nghĩa hàm check toàn cục cho slash commands
+async def global_slash_commands_channel_check(interaction: discord.Interaction) -> bool:
+    # Nếu lệnh chưa được xác định (thường là các tương tác không liên quan đến lệnh), cho phép luôn.
+    if interaction.command is None:
+        return True
+
+    cmd_name = interaction.command.name.lower()  # Lấy tên lệnh, chuyển về chữ thường để thống nhất
+    allowed_channels = slash_command_allowed_channels.get(cmd_name)
+
+    # Nếu không có cài đặt hạn chế cho lệnh này, cho phép dùng ở mọi kênh.
+    if allowed_channels is None:
+        return True
+
+    # Kiểm tra nếu kênh hiện tại nằm trong danh sách cho phép hay không
+    if interaction.channel and (interaction.channel.id in allowed_channels):
+        return True
+    else:
+        # Gửi thông báo lỗi cho người dùng nếu giao diện chưa được phản hồi
+        try:
+            await interaction.response.send_message(
+                "Lệnh này không được sử dụng tại kênh hiện tại!", ephemeral=True
+            )
+        except discord.InteractionResponded:
+            # Nếu đã phản hồi rồi, bỏ qua.
+            pass
+        return False
+
+# Đăng ký global check cho tất cả slash commands
+bot.tree.add_check(global_slash_commands_channel_check)
+
 @bot.event
 async def on_ready():
     print(f'Bot {bot.user} đã đăng nhập thành công trên Discord!')
