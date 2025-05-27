@@ -37,12 +37,12 @@ def register_anime(bot: commands.Bot):
             await ctx.send(f"Đây là video đã tải về cho {ctx.author.mention}:", file=video_file)
 
             # Xóa tin nhắn lệnh của người dùng
-            try:
-                await ctx.message.delete()
-            except discord.Forbidden:
-                print("Bot không có quyền xóa tin nhắn của người dùng.")
-            except Exception as e:
-                print(f"Lỗi khi xóa tin nhắn: {e}")
+            #try:
+                #await ctx.message.delete()
+            #except discord.Forbidden:
+                #print("Bot không có quyền xóa tin nhắn của người dùng.")
+            #except Exception as e:
+                #print(f"Lỗi khi xóa tin nhắn: {e}")
 
         except Exception as e:
             await ctx.send(f"Lỗi: {e}")
