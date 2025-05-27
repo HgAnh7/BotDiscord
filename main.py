@@ -19,6 +19,12 @@ bot = commands.Bot(command_prefix="/", intents=intents)
 @bot.event
 async def on_ready():
     print(f'Bot {bot.user} đã đăng nhập thành công trên Discord!')
+    try:
+        # Đồng bộ các lệnh slash (application commands) với Discord
+        synced = await bot.tree.sync()
+        print(f"Đã đồng bộ {len(synced)} lệnh slash!")
+    except Exception as e:
+        print(f"Lỗi khi đồng bộ lệnh slash: {e}")
 
 # Đăng ký các lệnh/sự kiện từ các module (các hàm register_ cần được chuyển hướng theo discord.py)
 #register_nct(bot)
