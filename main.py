@@ -19,10 +19,10 @@ bot = commands.Bot(command_prefix="/", intents=intents)
 # Bảng ánh xạ tên slash command -> danh sách các channel ID được phép sử dụng
 # Lưu ý: Tên này phải khớp với tên command khi bạn đăng ký chúng (không phân biệt chữ hoa thường)
 slash_command_allowed_channels = {
-    "scl": [123456789012345678],  # Thay bằng ID thực tế của kênh cho lệnh scl_command
+    "scl": [1375498235832959097, 1375707367051886654],  # Thay bằng ID thực tế của kênh cho lệnh scl_command
     #"img": [987654321098765432],    # Tương tự với lệnh img_command
-    "girl": [112233445566778899],
-    "anime": [223344556677889900],
+    "girl": [1375498235832959097, 1375707367051886654],
+    "anime": [1375498235832959097, 1375707367051886654],
     # Thêm các lệnh slash khác nếu cần.
     # Nếu một lệnh không có mục mapping ở đây, lệnh đó sẽ không bị hạn chế.
 }
