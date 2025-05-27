@@ -4,7 +4,7 @@ import discord
 import requests
 from discord.ext import commands
 
-def register_anime(bot: commands.Bot):
+def register_girl(bot: commands.Bot):
     @bot.command(name='girl')
     async def anime(ctx):
         try:
