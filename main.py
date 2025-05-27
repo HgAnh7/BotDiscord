@@ -2,7 +2,7 @@ import os
 import discord
 from discord.ext import commands
 #from bot.nct import register_nct
-#from bot.scl import register_scl
+from bot.scl import register_scl
 from bot.girl import register_girl
 from bot.anime import register_anime
 from bot.emoji import register_emoji
@@ -24,7 +24,7 @@ async def on_ready():
 
 # Đăng ký các lệnh/sự kiện từ các module (các hàm register_ cần được chuyển hướng theo discord.py)
 #register_nct(bot)
-#register_scl(bot)
+register_scl(bot)
 register_girl(bot)
 register_anime(bot)
 register_emoji(bot)
