@@ -1,7 +1,7 @@
 import os
 import discord
 from discord.ext import commands
-#from bot.nct import register_nct
+from bot.nct import register_nct
 from bot.scl import register_scl
 from bot.girl import register_girl
 from bot.anime import register_anime
@@ -23,7 +23,7 @@ async def on_ready():
     print(f'Bot {bot.user} đã đăng nhập thành công trên Discord!')
 
 # Đăng ký các lệnh/sự kiện từ các module (các hàm register_ cần được chuyển hướng theo discord.py)
-#register_nct(bot)
+register_nct(bot)
 register_scl(bot)
 register_girl(bot)
 register_anime(bot)
