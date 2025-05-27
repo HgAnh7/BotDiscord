@@ -66,7 +66,7 @@ def register_anime(bot: commands.Bot):
                    else "mp4")
             
             video_file = discord.File(io.BytesIO(resp.content), filename=f"anime_video.{ext}")
-            await interaction.response.send_message(embed=embed, file=video_file)
+            await ctx.send(f"Đây là video đã tải về cho {ctx.author.mention}:", file=video_file)
             
         except Exception as e:
-            await interaction.response.send_message(f"Lỗi: {e}", ephemeral=True)
+            await ctx.send(f"Lỗi: {e}")
