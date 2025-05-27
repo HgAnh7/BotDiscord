@@ -41,11 +41,13 @@ def register_anime(bot: commands.Bot):
     # Lệnh slash
     @bot.tree.command(name="anime", description="Gửi video anime ngẫu nhiên")
     async def anime_slash(interaction: discord.Interaction):
+        # Xác nhận tương tác ngay để được thêm thời gian xử lý.
+        await interaction.response.defer()
         try:
             with open("bot/url/anime.txt", "r", encoding="utf-8") as f:
                 video_urls = [line.strip() for line in f if line.strip()]
             if not video_urls:
-                return await interaction.response.send_message("Danh sách video chưa có dữ liệu!")
+                return await interaction.followup.send("Danh sách video chưa có dữ liệu!")
             
             # Chọn ngẫu nhiên một URL và tải video
             selected_video_url = random.choice(video_urls)
@@ -56,6 +58,7 @@ def register_anime(bot: commands.Bot):
                     "Chrome/98.0.4758.102 Safari/537.36"
                 )
             }
+            # Lưu ý: requests.get là đồng bộ, có thể gây block.
             resp = requests.get(selected_video_url, headers=headers, timeout=30)
             resp.raise_for_status()
             
@@ -66,7 +69,7 @@ def register_anime(bot: commands.Bot):
                    else "mp4")
             
             video_file = discord.File(io.BytesIO(resp.content), filename=f"anime_video.{ext}")
-            await interaction.response.send_message(f"Đây là video đã tải về cho {interaction.user.mention}:", file=video_file)
+            await interaction.followup.send(f"Đây là video đã tải về cho {interaction.user.mention}:", file=video_file)
             
         except Exception as e:
-            await interaction.response.send_message(f"Lỗi: {e}")
+            await interaction.followup.send(f"Lỗi: {e}")
