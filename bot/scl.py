@@ -147,7 +147,7 @@ class SCLView(ui.View):
             child.disabled = True
 
 def register_scl(bot: commands.Bot):
-    @bot.command(name="scl", help="Tìm và tải nhạc từ SoundCloud: !scl <tên bài>")
+    @bot.command(name="scl", help="Tìm và tải nhạc từ SoundCloud: /scl <tên bài>")
     async def soundcloud(ctx: commands.Context, *, *, query: str = None):
         if not query:
             return await ctx.send("🚫 Vui lòng nhập tên bài hát. Ví dụ: `!scl Blinding Lights`")
