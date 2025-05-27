@@ -5,14 +5,15 @@ import requests
 from discord.ext import commands
 
 def register_girl(bot: commands.Bot):
-    @bot.command(name='girl')
-    async def anime(ctx):
+    @bot.tree.command(name="girl", description="Gửi video gái ngẫu nhiên")
+    async def girl(interaction: discord.Interaction):
+        # Xác nhận tương tác ngay để được thêm thời gian xử lý.
+        await interaction.response.defer()
         try:
-            # Đọc danh sách URL từ tệp
             with open("bot/url/girl.txt", "r", encoding="utf-8") as f:
                 video_urls = [line.strip() for line in f if line.strip()]
             if not video_urls:
-                return await ctx.send("Danh sách video chưa có dữ liệu!")
+                return await interaction.followup.send("Danh sách video chưa có dữ liệu!")
             
             # Chọn ngẫu nhiên một URL và tải video
             selected_video_url = random.choice(video_urls)
@@ -23,6 +24,7 @@ def register_girl(bot: commands.Bot):
                     "Chrome/98.0.4758.102 Safari/537.36"
                 )
             }
+            # Lưu ý: requests.get là đồng bộ, có thể gây block.
             resp = requests.get(selected_video_url, headers=headers, timeout=30)
             resp.raise_for_status()
             
@@ -32,17 +34,8 @@ def register_girl(bot: commands.Bot):
                    else "ogg" if "video/ogg" in content_type 
                    else "mp4")
             
-            # Tạo file từ nội dung video tải được
             video_file = discord.File(io.BytesIO(resp.content), filename=f"anime_video.{ext}")
-            await ctx.send(f"Đây là video đã tải về cho {ctx.author.mention}:", file=video_file)
-
-            # Xóa tin nhắn lệnh của người dùng
-            #try:
-                #await ctx.message.delete()
-            #except discord.Forbidden:
-                #print("Bot không có quyền xóa tin nhắn của người dùng.")
-            #except Exception as e:
-                #print(f"Lỗi khi xóa tin nhắn: {e}")
-
+            await interaction.followup.send(f"Đây là video đã tải về cho {interaction.user.mention}:", file=video_file)
+            
         except Exception as e:
-            await ctx.send(f"Lỗi: {e}")
+            await interaction.followup.send(f"Lỗi: {e}")
