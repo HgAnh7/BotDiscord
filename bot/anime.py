@@ -6,7 +6,7 @@ from discord.ext import commands
 
 def register_anime(bot: commands.Bot):
     @bot.tree.command(name="anime", description="Gửi video anime ngẫu nhiên")
-    async def anime_slash(interaction: discord.Interaction):
+    async def anime(interaction: discord.Interaction):
         # Xác nhận tương tác ngay để được thêm thời gian xử lý.
         await interaction.response.defer()
         try:
