@@ -5,16 +5,14 @@ import re
 import json
 import random
 import requests
-from discord import Embed, File, ui, ButtonStyle, Interaction
+import discord
 from discord.ext import commands
 
-# Giữ state tạm cho mỗi user (user_id -> track list)
+# Biến toàn cục và cấu hình
 scl_data = {}
-
-PLATFORM    = "soundcloud"
-API_BASE    = "https://api-v2.soundcloud.com"
+PLATFORM = "soundcloud"
+API_BASE = "https://api-v2.soundcloud.com"
 CONFIG_PATH = "config.json"
-
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -28,6 +26,9 @@ ACCEPT_LANGUAGES = [
     "de-DE,de;q=0.9",
     "zh-CN,zh;q=0.9",
 ]
+
+# NOTE: TÔN TRỌNG TÁC GIẢ, KHÔNG XÓA DÒNG NÀY
+# SOURCE API SOUNDCLOUD SEARCH AND DOWNLOAD BY HOANGANH
 
 def get_random_element(array):
     return random.choice(array)
@@ -74,8 +75,8 @@ def get_client_id():
         if os.path.exists(CONFIG_PATH):
             with open(CONFIG_PATH, 'r') as f:
                 config = json.load(f)
-            return config.get('client_id', '')
-        return ''
+            return config.get('client_id', 'W00nmY7TLer3uyoEo1sWK3Hhke5Ahdl9')
+        return 'W00nmY7TLer3uyoEo1sWK3Hhke5Ahdl9'
 
 def get_music_info(question, limit=10):
     try:
@@ -84,8 +85,11 @@ def get_music_info(question, limit=10):
             f"{API_BASE}/search/tracks",
             params={
                 "q": question,
+                "variant_ids": "",
+                "facet": "genre",
                 "client_id": client_id,
                 "limit": limit,
+                "offset": 0,
                 "linked_partitioning": 1,
                 "app_locale": "en",
             },
@@ -105,122 +109,177 @@ def get_music_stream_url(track):
         response.raise_for_status()
         data = response.json()
         progressive_url = next(
-            (t['url'] for t in data.get('media', {}).get('transcodings', [])
-             if t['format']['protocol'] == 'progressive'),
+            (t['url'] for t in data.get('media', {}).get('transcodings', []) if t['format']['protocol'] == 'progressive'),
             None
         )
         if not progressive_url:
-            raise ValueError("No progressive URL")
-        stream_resp = requests.get(
-            f"{progressive_url}?client_id={client_id}&track_authorization={data.get('track_authorization','')}",
+            raise ValueError("No progressive transcoding URL found")
+        stream_response = requests.get(
+            f"{progressive_url}?client_id={client_id}&track_authorization={data.get('track_authorization', '')}",
             headers=get_headers()
         )
-        stream_resp.raise_for_status()
-        return stream_resp.json().get('url')
+        stream_response.raise_for_status()
+        return stream_response.json()['url']
     except Exception as e:
-        print(f"Error getting stream URL: {e}")
+        print(f"Error getting music stream URL: {e}")
         return None
 
-class SCLView(ui.View):
-    def __init__(self, user_id: int, tracks: list, timeout=60):
-        super().__init__(timeout=timeout)
-        self.user_id = user_id
+# Discord View cho buttons
+class SoundCloudView(discord.ui.View):
+    def __init__(self, tracks, user_id):
+        super().__init__(timeout=300)  # 5 minutes timeout
         self.tracks = tracks
-        # Tạo nút cho mỗi track
-        for idx, track in enumerate(tracks):
-            self.add_item(ui.Button(label=str(idx+1), style=ButtonStyle.primary, custom_id=f"scl_{user_id}_{idx}"))
-
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message("❌ Bạn không được phép bấm nút này.", ephemeral=True)
-            return False
-        return True
-
-    @ui.button(label="Hủy", style=ButtonStyle.danger, custom_id="scl_cancel")
-    async def cancel(self, button: ui.Button, interaction: Interaction):
-        await interaction.message.edit(content="❌ Đã huỷ chọn.", view=None)
-        self.stop()
-
+        self.user_id = user_id
+        
+        # Tạo buttons (maximum 25 buttons per view)
+        for i in range(min(len(tracks), 25)):
+            button = discord.ui.Button(
+                label=str(i + 1),
+                style=discord.ButtonStyle.primary,
+                custom_id=f"scl_{i}"
+            )
+            button.callback = self.button_callback
+            self.add_item(button)
+    
+    async def button_callback(self, interaction: discord.Interaction):
+        try:
+            # Kiểm tra quyền truy cập
+            if interaction.user.id != self.user_id:
+                await interaction.response.send_message(
+                    "❌ Bạn không có quyền sử dụng nút này!",
+                    ephemeral=True
+                )
+                return
+            
+            # Parse button index
+            track_index = int(interaction.data['custom_id'].split('_')[1])
+            
+            # Kiểm tra index hợp lệ
+            if track_index >= len(self.tracks):
+                await interaction.response.send_message(
+                    "❌ Lựa chọn không hợp lệ!",
+                    ephemeral=True
+                )
+                return
+            
+            track = self.tracks[track_index]
+            
+            # Response với loading message
+            await interaction.response.edit_message(
+                content=f"🧭 Đang tải: **{track['title']}**\n👤 Nghệ sĩ: {track['user']['username']}\n\n⏳ Vui lòng chờ...",
+                view=None
+            )
+            
+            # Lấy audio URL và thumbnail
+            audio_url = get_music_stream_url(track)
+            thumbnail_url = track.get('artwork_url', '').replace("-large", "-t500x500")
+            
+            if not audio_url or not thumbnail_url:
+                await interaction.edit_original_response(
+                    content="🚫 Không tìm thấy nguồn audio hoặc thumbnail."
+                )
+                return
+            
+            # Tạo embed cho thông tin bài hát
+            embed = discord.Embed(
+                title=track['title'],
+                description=f"**Nghệ sĩ:** {track['user']['username']}\n**Lượt nghe:** {track['playback_count']:,} | **Lượt thích:** {track['likes_count']:,}\n**Nguồn:** SoundCloud 🎶",
+                color=0xff7700  # SoundCloud orange color
+            )
+            embed.set_thumbnail(url=thumbnail_url)
+            
+            # Tải audio về buffer
+            try:
+                resp = requests.get(audio_url, stream=True)
+                resp.raise_for_status()
+                audio_bytes = resp.content
+                audio_buffer = io.BytesIO(audio_bytes)
+                
+                # Tạo file Discord
+                audio_file = discord.File(
+                    audio_buffer, 
+                    filename=f"{track['title']}.mp3"
+                )
+                
+                # Gửi embed và file audio
+                await interaction.followup.send(
+                    embed=embed,
+                    file=audio_file
+                )
+                
+                # Xóa tin nhắn kết quả tìm kiếm
+                try:
+                    await interaction.delete_original_response()
+                except Exception:
+                    pass
+                    
+            except Exception as e:
+                await interaction.edit_original_response(
+                    content=f"🚫 Lỗi khi tải nhạc: {str(e)}"
+                )
+                
+        except Exception as e:
+            await interaction.response.send_message(
+                f"❌ Có lỗi xảy ra: {str(e)}",
+                ephemeral=True
+            )
+            print(f"Error in button callback: {e}")
+    
     async def on_timeout(self):
-        # Khi timeout, xoá view
-        for child in self.children:
-            child.disabled = True
+        # Disable all buttons when timeout
+        for item in self.children:
+            item.disabled = True
 
-def register_scl(bot: commands.Bot):
-    @bot.command(name="scl", help="Tìm và tải nhạc từ SoundCloud: /scl <tên bài>")
-    async def soundcloud(ctx: commands.Context, *, *, query: str = None):
-        if not query:
-            return await ctx.send("🚫 Vui lòng nhập tên bài hát. Ví dụ: `!scl Blinding Lights`")
-        await ctx.trigger_typing()
-
-        data = get_music_info(query)
-        if not data or not data.get('collection'):
-            return await ctx.send("🚫 Không tìm thấy kết quả.")
-
-        # Lọc track có artwork
-        tracks = [t for t in data['collection'] if t.get('artwork_url')]
-        if not tracks:
-            return await ctx.send("🚫 Không có kết quả nào có hình ảnh.")
-
-        # Lưu tracks tạm
-        scl_data[ctx.author.id] = tracks
-
-        # Tạo nội dung message
-        desc = "<b>🎵 Kết quả tìm kiếm:</b>\n\n"
-        for i, t in enumerate(tracks, start=1):
-            desc += (f"<b>{i}. {t['title']}</b>\n"
-                     f"👤 {t['user']['username']} | ▶️ {t['playback_count']:,} plays | ❤️ {t['likes_count']:,}\n\n")
-        desc += "<b>Chọn số để tải (hoặc bấm Hủy):</b>"
-
-        # Gửi embed kèm Buttons
-        embed = Embed(description=desc, color=0x1DB954)
-        view = SCLView(ctx.author.id, tracks)
-        await ctx.send(embed=embed, view=view)
-
-    @bot.event
-    async def on_interaction(interaction: Interaction):
-        # Bắt custom_id scl_{user}_{idx}
-        cid = interaction.data.get("custom_id", "")
-        if not cid.startswith("scl_"):
-            return  # không quan tâm
-        parts = cid.split("_")
-        if parts[1] == "cancel":
-            return  # nút cancel đã xử lý trong view
-        user_id = int(parts[1])
-        idx     = int(parts[2])
-        if interaction.user.id != user_id:
+def register_scl(bot):
+    """
+    Đăng ký lệnh /scl cho Discord bot
+    """
+    
+    @bot.command(name='scl')
+    async def soundcloud(ctx, *, keyword: str = None):
+        if not keyword:
+            await ctx.reply(
+                "🚫 Vui lòng nhập tên bài hát muốn tìm kiếm.\nVí dụ: `/scl Tên bài hát`"
+            )
             return
 
-        tracks = scl_data.get(user_id)
-        if not tracks or idx >= len(tracks):
-            return await interaction.response.send_message("❌ Lựa chọn không hợp lệ hoặc đã hết dữ liệu.", ephemeral=True)
+        keyword = keyword.strip()
+        music_info = get_music_info(keyword)
+        
+        if not music_info or not music_info.get('collection') or len(music_info['collection']) == 0:
+            await ctx.reply("🚫 Không tìm thấy bài hát nào khớp với từ khóa.")
+            return
 
-        track = tracks[idx]
-        await interaction.response.defer()  # acknowledge
+        tracks = [track for track in music_info['collection'] if track.get('artwork_url')]
+        if not tracks:
+            await ctx.reply("🚫 Không tìm thấy bài hát nào có hình ảnh.")
+            return
 
-        # Cập nhật message loading
-        await interaction.message.edit(content=f"⏳ Đang lấy file cho: **{track['title']}**", view=None)
+        # Tạo embed cho kết quả tìm kiếm
+        embed = discord.Embed(
+            title="🎵 Kết quả tìm kiếm trên SoundCloud",
+            color=0xff7700
+        )
+        
+        # Thêm thông tin các bài hát
+        description = ""
+        for i, track in enumerate(tracks):
+            description += f"**{i + 1}. {track['title']}**\n"
+            description += f"👤 Nghệ sĩ: {track['user']['username']}\n"
+            description += f"📊 Lượt nghe: {track['playback_count']:,} | Thích: {track['likes_count']:,}\n\n"
+        
+        description += "**💡 Chọn số bài hát bạn muốn tải!**"
+        embed.description = description
 
-        # Lấy URL stream và thumbnail
-        stream_url = get_music_stream_url(track)
-        thumb_url  = track.get('artwork_url', '').replace("-large", "-t500x500")
-        if not stream_url:
-            return await interaction.followup.send("🚫 Không tải được audio.")
+        # Tạo view với buttons
+        view = SoundCloudView(tracks, ctx.author.id)
+        
+        # Gửi message với embed và view
+        await ctx.reply(embed=embed, view=view)
 
-        # Gửi ảnh + audio
-        embed = Embed(title=track['title'], url=track['permalink_url'], color=0x1DB954)
-        embed.set_thumbnail(url=thumb_url)
-        embed.add_field(name="Artist", value=track['user']['username'], inline=True)
-        embed.add_field(name="Plays", value=f"{track['playback_count']:,}", inline=True)
-        embed.add_field(name="Likes", value=f"{track['likes_count']:,}", inline=True)
-        await interaction.followup.send(embed=embed)
-
-        # Download và gửi audio
-        resp = requests.get(stream_url, stream=True)
-        audio_bytes = resp.content
-        buf = io.BytesIO(audio_bytes)
-        buf.name = f"{track['title']}.mp3"
-        await interaction.followup.send(file=File(buf))
-
-        # Dọn dẹp dữ liệu
-        scl_data.pop(user_id, None)
+# Sử dụng:
+# intents = discord.Intents.default()
+# intents.message_content = True
+# bot = commands.Bot(command_prefix='/', intents=intents)
+# register_scl(bot)
+# bot.run('YOUR_BOT_TOKEN')
