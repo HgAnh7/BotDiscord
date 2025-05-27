@@ -8,17 +8,14 @@ def register_anime(bot: commands.Bot):
     @bot.command(name='anime')
     async def anime(ctx):
         try:
-            # Đường dẫn tới tệp chứa danh sách URL video
-            file_path = "bot/url/anime.txt"
+            # Đọc danh sách URL từ tệp
+            with open("bot/url/anime.txt", "r", encoding="utf-8") as f:
+                video_urls = [line.strip() for line in f if line.strip()]
+            if not video_urls:
+                return await ctx.send("Danh sách video chưa có dữ liệu!")
             
-            # Đọc tệp và loại bỏ các dòng trống
-            with open(file_path, "r", encoding="utf-8") as file:
-                video_urls = [line.strip() for line in file if line.strip()]
-
-            # Chọn ngẫu nhiên một URL trong danh sách
+            # Chọn ngẫu nhiên một URL và tải video
             selected_video_url = random.choice(video_urls)
-
-            # Tải video từ URL đã chọn
             headers = {
                 "User-Agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -26,27 +23,26 @@ def register_anime(bot: commands.Bot):
                     "Chrome/98.0.4758.102 Safari/537.36"
                 )
             }
-            video_response = requests.get(selected_video_url, headers=headers, timeout=30)
-            video_response.raise_for_status()  # Nếu có lỗi HTTP thì ném exception
-
-            # Xác định phần mở rộng file dựa trên header Content-Type, mặc định là 'mp4'
-            ext = "mp4"
-            content_type = video_response.headers.get("Content-Type", "")
-            if "video/mp4" in content_type:
-                ext = "mp4"
-            elif "video/webm" in content_type:
-                ext = "webm"
-            elif "video/ogg" in content_type:
-                ext = "ogg"
-
-            # Tạo file video từ nội dung tải được (sử dụng io.BytesIO để không cần lưu ra đĩa)
-            video_file = discord.File(
-                io.BytesIO(video_response.content),
-                filename=f"anime_video.{ext}"
-            )
-
-            # Gửi tin nhắn cùng với file video; khi người dùng mở video, nếu kích hoạt thì có âm thanh
+            resp = requests.get(selected_video_url, headers=headers, timeout=30)
+            resp.raise_for_status()
+            
+            # Xác định phần mở rộng file dựa trên Content-Type (mặc định là 'mp4')
+            content_type = resp.headers.get("Content-Type", "")
+            ext = ("webm" if "video/webm" in content_type 
+                   else "ogg" if "video/ogg" in content_type 
+                   else "mp4")
+            
+            # Tạo file từ nội dung video tải được
+            video_file = discord.File(io.BytesIO(resp.content), filename=f"anime_video.{ext}")
             await ctx.send(f"Đây là video đã tải về cho {ctx.author.mention}:", file=video_file)
-        
+
+            # Xóa tin nhắn lệnh của người dùng
+            try:
+                await ctx.message.delete()
+            except discord.Forbidden:
+                print("Bot không có quyền xóa tin nhắn của người dùng.")
+            except Exception as e:
+                print(f"Lỗi khi xóa tin nhắn: {e}")
+
         except Exception as e:
             await ctx.send(f"Lỗi: {e}")
