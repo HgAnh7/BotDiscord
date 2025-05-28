@@ -1,4 +1,5 @@
 import re
+import time
 import requests
 import discord
 from bs4 import BeautifulSoup
@@ -8,7 +9,7 @@ def register_images(bot: commands.Bot):
     @bot.command(name="images")
     async def images(ctx, url: str = None):
         if url is None:
-            await ctx.send("Vui lòng cung cấp URL. Ví dụ: !images https://example.com")
+            await ctx.send("Vui lòng cung cấp URL. Ví dụ: /images https://example.com")
             return
 
         if not re.match(r'^https?://', url):
@@ -17,9 +18,7 @@ def register_images(bot: commands.Bot):
 
         loading_msg = await ctx.send(f"Đang tải trang: {url} ...")
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:112.0) Gecko/20100101 Firefox/112.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
         }
         try:
             resp = requests.get(url, headers=headers, timeout=10)
