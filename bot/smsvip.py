@@ -42,7 +42,7 @@ async def check_cooldown(user_id, cooldown=60):
             return int(cooldown - elapsed)
     return 0
 
-def register_spam(bot):
+def register_smsvip(bot):
     """Register spam commands for Discord bot"""
     
     @bot.tree.command(name="add", description="Thêm người dùng vào VIP spam (Admin only)")
