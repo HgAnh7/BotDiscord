@@ -1,12 +1,10 @@
 import os
 
 # try:
-#     import bs4, discord, requests
+#     import bs4, discord, colorama, requests
 # except ImportError:
 #     os.system('pip3 install -r requirements.txt')
 #     os.system('cls' if os.name == 'nt' else 'clear')
-    
-
 
 import discord
 from discord.ext import commands
@@ -17,6 +15,7 @@ from bot.girl import register_girl
 from bot.anime import register_anime
 from bot.emoji import register_emoji
 from bot.images import register_images
+from bot.smsvip import register_smsvip
 from bot.cosplay import register_cosplay
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -42,6 +41,7 @@ register_img(bot)
 register_girl(bot)
 register_anime(bot)
 register_emoji(bot)
+register_smsvip(bot)
 register_images(bot)
 register_cosplay(bot)
 
