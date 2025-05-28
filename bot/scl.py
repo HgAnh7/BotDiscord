@@ -226,13 +226,7 @@ class SoundCloudView(discord.ui.View):
 
 def register_scl(bot):
     @bot.tree.command(name="scl", description="Tìm kiếm và tải nhạc từ SoundCloud")
-    async def scl(interaction: discord.Interaction, keyword: str = None):
-        if not keyword:
-            await interaction.response.send_message(
-                "🚫 Vui lòng nhập tên bài hát muốn tìm kiếm.\nVí dụ: `/scl Tên bài hát`",
-                ephemeral=True
-            )
-            return
+    async def scl(interaction: discord.Interaction, keyword: str):
 
         keyword = keyword.strip()
         music_info = get_music_info(keyword)
