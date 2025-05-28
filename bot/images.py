@@ -18,8 +18,14 @@ def register_images(bot: commands.Bot):
 
         loading_msg = await ctx.send(f"Đang tải trang: {url} ...")
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate",
+            "Referer": "https://meoden.net/",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Connection": "keep-alive"
         }
+
         try:
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
