@@ -4,13 +4,10 @@ import os
 import re
 import json
 import random
-import requests
 import discord
-from discord.ext import commands
+import requests
 
 # Biến toàn cục và cấu hình
-scl_data = {}
-PLATFORM = "soundcloud"
 API_BASE = "https://api-v2.soundcloud.com"
 CONFIG_PATH = "config.json"
 USER_AGENTS = [
@@ -26,9 +23,6 @@ ACCEPT_LANGUAGES = [
     "de-DE,de;q=0.9",
     "zh-CN,zh;q=0.9",
 ]
-
-# NOTE: TÔN TRỌNG TÁC GIẢ, KHÔNG XÓA DÒNG NÀY
-# SOURCE API SOUNDCLOUD SEARCH AND DOWNLOAD BY HOANGANH
 
 def get_random_element(array):
     return random.choice(array)
@@ -231,15 +225,12 @@ class SoundCloudView(discord.ui.View):
             item.disabled = True
 
 def register_scl(bot):
-    """
-    Đăng ký lệnh /scl cho Discord bot
-    """
-    
-    @bot.command(name='scl')
-    async def soundcloud(ctx, *, keyword: str = None):
+    @bot.tree.command(name="scl", description="Tìm kiếm và tải nhạc từ SoundCloud")
+    async def scl(interaction: discord.Interaction, keyword: str = None):
         if not keyword:
-            await ctx.reply(
-                "🚫 Vui lòng nhập tên bài hát muốn tìm kiếm.\nVí dụ: `/scl Tên bài hát`"
+            await interaction.response.send_message(
+                "🚫 Vui lòng nhập tên bài hát muốn tìm kiếm.\nVí dụ: `/scl Tên bài hát`",
+                ephemeral=True
             )
             return
 
@@ -247,21 +238,19 @@ def register_scl(bot):
         music_info = get_music_info(keyword)
         
         if not music_info or not music_info.get('collection') or len(music_info['collection']) == 0:
-            await ctx.reply("🚫 Không tìm thấy bài hát nào khớp với từ khóa.")
+            await interaction.response.send_message("🚫 Không tìm thấy bài hát nào khớp với từ khóa.")
             return
 
         tracks = [track for track in music_info['collection'] if track.get('artwork_url')]
         if not tracks:
-            await ctx.reply("🚫 Không tìm thấy bài hát nào có hình ảnh.")
+            await interaction.response.send_message("🚫 Không tìm thấy bài hát nào có hình ảnh.")
             return
 
-        # Tạo embed cho kết quả tìm kiếm
         embed = discord.Embed(
             title="🎵 Kết quả tìm kiếm trên SoundCloud",
             color=0xff7700
         )
         
-        # Thêm thông tin các bài hát
         description = ""
         for i, track in enumerate(tracks):
             description += f"**{i + 1}. {track['title']}**\n"
@@ -271,15 +260,6 @@ def register_scl(bot):
         description += "**💡 Chọn số bài hát bạn muốn tải!**"
         embed.description = description
 
-        # Tạo view với buttons
-        view = SoundCloudView(tracks, ctx.author.id)
-        
-        # Gửi message với embed và view
-        await ctx.reply(embed=embed, view=view)
+        view = SoundCloudView(tracks, interaction.user.id)
 
-# Sử dụng:
-# intents = discord.Intents.default()
-# intents.message_content = True
-# bot = commands.Bot(command_prefix='/', intents=intents)
-# register_scl(bot)
-# bot.run('YOUR_BOT_TOKEN')
+        await interaction.response.send_message(embed=embed, view=view)
