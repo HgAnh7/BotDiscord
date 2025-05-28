@@ -1,4 +1,13 @@
 import os
+
+try:
+    import bs4, discord, requests
+except ImportError:
+    os.system('pip3 install -r requirements.txt')
+    os.system('cls' if os.name == 'nt' else 'clear')
+    
+"""==============================================="""
+
 import discord
 from discord.ext import commands
 #from bot.nct import register_nct
