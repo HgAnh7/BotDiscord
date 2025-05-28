@@ -1,7 +1,6 @@
 import re
-import time
-import requests
 import discord
+import requests
 from bs4 import BeautifulSoup
 from discord.ext import commands
 
