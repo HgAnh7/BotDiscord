@@ -1,5 +1,4 @@
 import re
-import time
 import requests
 import discord
 from bs4 import BeautifulSoup
