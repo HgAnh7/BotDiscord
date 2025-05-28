@@ -23,7 +23,7 @@ def register_images(bot: commands.Bot):
             )
             return
 
-        # Gửi tin nhắn thông báo đang tải trang (ephemeral: chỉ hiển thị riêng cho người dùng)
+        # Gửi tin nhắn thông báo đang tải trang (ephemeral: chỉ hiển thị cho người dùng)
         await ctx.response.send_message(f"Đang tải trang: {url}", ephemeral=True)
 
         headers = {
@@ -42,15 +42,17 @@ def register_images(bot: commands.Bot):
         soup = BeautifulSoup(resp.text, "html.parser")
         image_urls = []
 
+        # Lấy các ảnh từ thẻ <img>
         for img in soup.find_all("img"):
             src = img.get("src") or img.get("data-src")
             if src:
                 full_url = requests.compat.urljoin(resp.url, src)
                 image_urls.append(full_url)
 
+        # Lấy các ảnh từ thuộc tính style có chứa url(...)
         for tag in soup.find_all(style=True):
-            style = tag["style"]
-            # Sử dụng regex để đảm bảo bắt đúng cú pháp CSS: url("...") hoặc url('...')
+            style = tag.get("style", "")
+            # Dùng regex bắt đúng cú pháp CSS: url("...") hoặc url('...')
             matches = re.findall(r'url["\']?(.*?)["\']?', style)
             for match in matches:
                 full_url = requests.compat.urljoin(resp.url, match)
@@ -59,15 +61,15 @@ def register_images(bot: commands.Bot):
         # Loại bỏ các URL trùng (giữ thứ tự ban đầu)
         image_urls = list(dict.fromkeys(image_urls))
 
-        # Xoá tin nhắn thông báo "Đang tải trang: {url}" khi tải thành công
+        # Xoá tin nhắn thông báo "Đang tải trang: {url}" khi tải trang thành công
         await ctx.delete_original_response()
 
-        # Kiểm tra nếu không tìm thấy URL ảnh nào
+        # Nếu không tìm thấy URL ảnh nào
         if not image_urls:
             await send_and_delete(ctx, f"Không tìm thấy URL ảnh nào từ trang {url}", delay=60)
             return
 
-        # Ghi danh sách URL ảnh và gửi theo nhóm (với mỗi tin nhắn không vượt quá 2000 ký tự)
+        # Đánh số các URL ảnh và chia thành các nhóm (chunk) nếu quá 2000 ký tự mỗi tin nhắn
         numbered = [f"{i+1}. <{img_url}>" for i, img_url in enumerate(image_urls)]
         current_chunk = ""
         for line in numbered:
