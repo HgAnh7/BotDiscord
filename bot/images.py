@@ -1,7 +1,6 @@
 import re
 import discord
 import requests
-import asyncio
 from bs4 import BeautifulSoup
 from discord.ext import commands
 
@@ -42,7 +41,7 @@ def register_images(bot: commands.Bot):
         # Thu thập từ thuộc tính style chứa cú pháp url(...)
         for tag in soup.find_all(style=True):
             style = tag.get("style", "")
-            matches = re.findall(r'url["\']?(.*?)["\']?', style)
+            matches = re.findall(r'url\(["\']?(.*?)["\']?\)', style)
             for match in matches:
                 full_url = requests.compat.urljoin(resp.url, match)
                 image_urls.append(full_url)
