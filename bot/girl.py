@@ -34,7 +34,7 @@ def register_girl(bot: commands.Bot):
                    else "ogg" if "video/ogg" in content_type 
                    else "mp4")
             
-            video_file = discord.File(io.BytesIO(resp.content), filename=f"anime_video.{ext}")
+            video_file = discord.File(io.BytesIO(resp.content), filename=f"girl_video.{ext}")
             await interaction.followup.send(f"Đây là video đã tải về cho {interaction.user.mention}:", file=video_file)
             
         except Exception as e:
