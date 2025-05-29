@@ -5,7 +5,7 @@ import requests
 from discord.ext import commands
 
 # Cấu hình
-ERROR_CHANNEL_ID = 123456789012345678  # Thay bằng ID channel báo lỗi thực tế
+ERROR_CHANNEL_ID = 1375700436593672222  # Thay bằng ID channel báo lỗi thực tế
 MAX_FILE_SIZE_MB = 8  # Discord free tier limit (hoặc 25 cho Nitro)
 MAX_RETRIES = 5  # Số lần thử tối đa
 
