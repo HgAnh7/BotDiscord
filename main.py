@@ -17,6 +17,7 @@ from bot.emoji import register_emoji
 from bot.images import register_images
 from bot.smsvip import register_smsvip
 from bot.cosplay import register_cosplay
+from bot.sourceweb import register_sourceweb
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
@@ -44,6 +45,7 @@ register_emoji(bot)
 register_smsvip(bot)
 register_images(bot)
 register_cosplay(bot)
+register_sourceweb(bot)
 
 if __name__ == '__main__':
     print("Bot Discord đang hoạt động...")
