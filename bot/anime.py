@@ -1,4 +1,3 @@
-Jue Han, [5/30/25 11:04 AM]
 import io
 import random
 import discord
@@ -87,9 +86,7 @@ def register_anime(bot: commands.Bot):
                     if actual_size_mb > MAX_FILE_SIZE_MB:
                         if error_channel:
                             await error_channel.send(
-
-Jue Han, [5/30/25 11:04 AM]
-f"**URL Anime Quá Lớn (Thực tế):** {selected_video_url}\n"
+                                f"**URL Anime Quá Lớn (Thực tế):** {selected_video_url}\n"
                                 f"Kích thước thực: {actual_size_mb:.2f}MB (> {MAX_FILE_SIZE_MB}MB)\n"
                                 f"User: {interaction.user.mention} ({interaction.user.id})"
                             )
