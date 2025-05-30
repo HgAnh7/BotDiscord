@@ -1,7 +1,6 @@
 import os
 import qrcode
 import discord
-from PIL import Image
 from io import BytesIO
 from discord.ext import commands
 
