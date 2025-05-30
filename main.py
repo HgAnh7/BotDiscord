@@ -8,7 +8,7 @@ import os
 
 import discord
 from discord.ext import commands
-from bot.qr import register_qr
+from bot.qr import register_qr, register_qrurl
 #from bot.nct import register_nct
 from bot.scl import register_scl
 from bot.img import register_img
@@ -42,6 +42,7 @@ register_qr(bot)
 register_scl(bot)
 register_img(bot)
 register_girl(bot)
+register_qrurl(bot)
 register_anime(bot)
 register_emoji(bot)
 register_smsvip(bot)
