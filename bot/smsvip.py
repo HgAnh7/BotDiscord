@@ -6,7 +6,6 @@ from datetime import datetime
 from discord.ext import commands
 from discord import app_commands
 
-# Global variables
 last_spam_time = {}
 spam_process = None
 VIP_FILE = "bot/spam/vip.json"
@@ -59,6 +58,7 @@ def register_smsvip(bot):
         await interaction.response.send_message(f"✅ Đã thêm {user.mention} vào VIP!")
 
     @bot.tree.command(name="smsvip", description="Spam SMS (VIP only)")
+    @app_commands.describe(phone="Số điện thoại", loops="Số lần gửi (1–1000)")
     async def spam_sms(interaction: discord.Interaction, phone: str, loops: int):
         global last_spam_time, spam_process
         
