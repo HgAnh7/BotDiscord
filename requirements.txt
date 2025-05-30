@@ -1,4 +1,5 @@
 bs4
+Pillow
 qrcode
 colorama
 requests
