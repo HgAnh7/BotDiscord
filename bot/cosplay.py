@@ -4,9 +4,21 @@ import discord
 import requests
 from discord.ext import commands
 
+ALLOWED_CHANNELS = [
+    1375707188252901376,  # Thay bằng ID kênh thực tế
+    1375707367051886654,  # Có thể thêm nhiều kênh
+]
+
 def register_cosplay(bot: commands.Bot):
-    @bot.tree.command(name="cosplay", description="Gửi ảnh cosplay ngẫu nhiên")
+    @bot.tree.command(name="cosplay", description="Gửi ảnh cosplay ngẫu nhiên (only: 🔞┊nsfw)")
     async def cosplay(interaction: discord.Interaction):
+        # Kiểm tra xem kênh hiện tại có được phép không
+        if interaction.channel_id not in ALLOWED_CHANNELS:
+            await interaction.response.send_message(
+                "❌ Lệnh này chỉ có thể sử dụng trong các kênh được chỉ định!", 
+                ephemeral=True
+            )
+            return
         # Xác nhận tương tác ngay để được thêm thời gian xử lý.
         await interaction.response.defer()
         try:
