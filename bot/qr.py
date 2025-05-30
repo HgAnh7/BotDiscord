@@ -69,6 +69,6 @@ async def setup(bot):
     await bot.add_cog(QRCode(bot))
 
 # Hoặc sử dụng hàm register cũ (nếu cần thiết)
-def register_qrcode(bot):
+def register_qr(bot):
     import asyncio
     asyncio.create_task(bot.add_cog(QRCode(bot)))
