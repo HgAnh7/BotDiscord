@@ -1,74 +1,113 @@
-import qrcode
+import os
 import discord
+import qrcode
 from io import BytesIO
-from discord import app_commands
 from discord.ext import commands
 
-class QRCode(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-    
-    @app_commands.command(name="qr", description="Tạo QR Code từ văn bản")
-    async def generate_qr(self, interaction: discord.Interaction, text: str):
-        # Kiểm tra độ dài text
-        if len(text) > 2000:
-            await interaction.response.send_message(
-                "❌ Văn bản quá dài! Tối đa 2000 ký tự.", 
-                ephemeral=True
-            )
-            return
+def register_qr(bot: commands.Bot):
+    @bot.tree.command(name="qr", description="Tạo QR code từ nội dung được cung cấp.")
+    async def slash_qr(interaction: discord.Interaction, content: str):
+        # Defer response để tránh timeout
+        await interaction.response.defer()
         
-        # Kiểm tra text trống
-        if not text.strip():
-            await interaction.response.send_message(
-                "❌ Vui lòng nhập văn bản để tạo QR code!", 
-                ephemeral=True
-            )
-            return
-        
-        buffer = None
         try:
-            # Tạo QR code
-            qr = qrcode.QRCode(
+            # Kiểm tra độ dài content
+            if len(content) > 2000:
+                await interaction.followup.send("❌ Nội dung quá dài! Tối đa 2000 ký tự.", ephemeral=True)
+                return
+            
+            if not content.strip():
+                await interaction.followup.send("❌ Vui lòng nhập nội dung để tạo QR code!", ephemeral=True)
+                return
+            
+            # Tạo QR code với cấu hình tối ưu
+            qr_obj = qrcode.QRCode(
                 version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                error_correction=qrcode.constants.ERROR_CORRECT_M,  # Tăng error correction
+                box_size=10,
+                border=2,  # Tăng border để dễ scan hơn
+            )
+            
+            qr_obj.add_data(content)
+            qr_obj.make(fit=True)
+            
+            # Tạo ảnh với màu tùy chỉnh
+            img = qr_obj.make_image(fill_color="#d777f7", back_color="white")
+            
+            # Lưu ảnh vào buffer
+            buffer = BytesIO()
+            img.save(buffer, format="PNG", optimize=True)
+            buffer.seek(0)
+            
+            # Tạo file Discord
+            file = discord.File(fp=buffer, filename=f"qr_{interaction.user.id}.png")
+            
+            # Tạo embed đẹp mắt
+            embed = discord.Embed(
+                title="🔳 QR Code",
+                description=f"QR code cho: `{content[:100]}{'...' if len(content) > 100 else ''}`",
+                color=0xd777f7
+            )
+            embed.set_footer(text=f"Tạo bởi {interaction.user.display_name}")
+            
+            await interaction.followup.send(embed=embed, file=file)
+            
+        except qrcode.exceptions.DataOverflowError:
+            await interaction.followup.send("❌ Nội dung quá phức tạp hoặc quá dài để tạo QR code!", ephemeral=True)
+        except Exception as e:
+            print(f"Lỗi tạo QR code: {e}")
+            await interaction.followup.send("❌ Có lỗi xảy ra khi tạo QR code. Vui lòng thử lại!", ephemeral=True)
+        finally:
+            # Đảm bảo đóng buffer
+            try:
+                buffer.close()
+            except:
+                pass
+
+# Thêm command để tạo QR code với URL
+def register_qrurl(bot: commands.Bot):
+    @bot.tree.command(name="qrurl", description="Tạo QR code từ URL.")
+    async def slash_qr_url(interaction: discord.Interaction, url: str):
+        await interaction.response.defer()
+        
+        try:
+            # Kiểm tra URL format cơ bản
+            if not (url.startswith('http://') or url.startswith('https://')):
+                url = 'https://' + url
+            
+            # Tạo QR code cho URL
+            qr_obj = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_M,
                 box_size=10,
                 border=2,
             )
-            qr.add_data(text)
-            qr.make(fit=True)
             
-            # Tạo image
-            img = qr.make_image(fill_color="#d777f7", back_color="white")
+            qr_obj.add_data(url)
+            qr_obj.make(fit=True)
             
-            # Lưu vào buffer
+            img = qr_obj.make_image(fill_color="#4CAF50", back_color="white")
+            
             buffer = BytesIO()
-            img.save(buffer, format="PNG")
+            img.save(buffer, format="PNG", optimize=True)
             buffer.seek(0)
             
-            # Gửi response
-            await interaction.response.send_message(
-                content=f"✅ QR code cho: `{text[:50]}{'...' if len(text) > 50 else ''}`",
-                file=discord.File(fp=buffer, filename="qrcode.png")
+            file = discord.File(fp=buffer, filename=f"qr_url_{interaction.user.id}.png")
+            
+            embed = discord.Embed(
+                title="🌐 QR Code - URL",
+                description=f"QR code cho: {url}",
+                color=0x4CAF50
             )
+            embed.set_footer(text=f"Tạo bởi {interaction.user.display_name}")
+            
+            await interaction.followup.send(embed=embed, file=file)
             
         except Exception as e:
-            await interaction.response.send_message(
-                "❌ Có lỗi khi tạo QR code. Vui lòng thử lại!",
-                ephemeral=True
-            )
-            print(f"QR Code Error: {e}")  # Log lỗi cho admin
-            
+            print(f"Lỗi tạo QR URL: {e}")
+            await interaction.followup.send("❌ Có lỗi xảy ra khi tạo QR code URL!", ephemeral=True)
         finally:
-            # Đóng buffer để tránh memory leak
-            if buffer:
+            try:
                 buffer.close()
-
-# Cách đăng ký Cog chuẩn
-async def setup(bot):
-    await bot.add_cog(QRCode(bot))
-
-# Hoặc sử dụng hàm register cũ (nếu cần thiết)
-def register_qr(bot):
-    import asyncio
-    asyncio.create_task(bot.add_cog(QRCode(bot)))
+            except:
+                pass
