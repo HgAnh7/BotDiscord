@@ -1,4 +1,5 @@
 import os
+import PIL
 import discord
 import qrcode
 from io import BytesIO
