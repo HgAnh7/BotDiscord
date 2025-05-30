@@ -1,4 +1,5 @@
 bs4
+qrcode
 colorama
 requests
 discord.py
