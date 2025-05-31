@@ -177,7 +177,7 @@ class SoundCloudView(discord.ui.View):
             # Tạo embed cho thông tin bài hát
             embed = discord.Embed(
                 title=track['title'],
-                description=f"**Nghệ sĩ:** {track['user']['username']}\n**Lượt nghe:** {track['playback_count']:,} | **Lượt thích:** {track['likes_count']:,}\n**Nguồn:** SoundCloud 🎶",
+                description=f"**Nghệ sĩ:** {track['user']['username']}\n**Lượt nghe:** {track['playback_count']:,}\n**Lượt thích:** {track['likes_count']:,}\n**Nguồn:** SoundCloud 🎶",
                 color=0xff7700  # SoundCloud orange color
             )
             embed.set_thumbnail(url=thumbnail_url)
