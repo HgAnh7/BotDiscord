@@ -23,7 +23,7 @@ def register_cosplay(bot: commands.Bot):
         await interaction.response.defer()
         try:
             # Đọc danh sách URL ảnh từ file
-            with open("bot/url/cosplay.txt", "r", encoding="utf-8") as f:
+            with open("bot/url/cosplay", "r", encoding="utf-8") as f:
                 image_urls = [line.strip() for line in f if line.strip()]
             if not image_urls:
                 return await interaction.followup.send("Danh sách ảnh chưa có dữ liệu!")
