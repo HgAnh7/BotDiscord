@@ -12,7 +12,7 @@ MAX_RETRIES = 5
 def load_urls():
     """Load URLs với validation cơ bản"""
     try:
-        with open("bot/url/anime.txt", "r", encoding="utf-8") as f:
+        with open("bot/url/anime", "r", encoding="utf-8") as f:
             urls = [line.strip() for line in f if line.strip() and line.startswith('http')]
         return urls if urls else []
     except UnicodeDecodeError:
