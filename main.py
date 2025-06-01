@@ -8,6 +8,7 @@ import os
 
 import discord
 from discord.ext import commands
+from notification import register_notification
 from bot.qr import register_qr, register_qrurl
 #from bot.nct import register_nct
 from bot.scl import register_scl
@@ -23,8 +24,11 @@ from bot.sourceweb import register_sourceweb
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-intents = discord.Intents.default()
-intents.message_content = True  # Cần bật nếu bạn muốn đọc nội dung tin nhắn
+# intents = discord.Intents.default()
+# intents.message_content = True  # Cần bật nếu bạn muốn đọc nội dung tin nhắn
+# intents.members = True  # Quan trọng: bắt sự kiện join/leave
+
+intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="/", intents=intents)
 
 @bot.event
@@ -51,6 +55,7 @@ register_images(bot)
 register_bancheck(bot)
 register_cosplay(bot)
 register_sourceweb(bot)
+register_notification(bot)
 
 if __name__ == '__main__':
     print("Bot Discord đang hoạt động...")
