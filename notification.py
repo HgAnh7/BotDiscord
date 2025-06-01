@@ -15,4 +15,4 @@ def register_notification(bot: commands.Bot):
     async def on_member_remove(member):
         channel = member.guild.get_channel(GOODBYE_CHANNEL_ID)
         if channel:
-            await channel.send(f'😢 {member.name} đã rời khỏi server.')
+            await channel.send(f'😢 Tạm biệt {member.mention} đã rời khỏi server **{member.guild.name}**!')
