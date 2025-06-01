@@ -1,11 +1,4 @@
 import os
-
-# try:
-#     import bs4, discord, colorama, requests
-# except ImportError:
-#     os.system('pip3 install -r requirements.txt')
-#     os.system('cls' if os.name == 'nt' else 'clear')
-
 import discord
 from discord.ext import commands
 from notification import register_notification
@@ -13,6 +6,7 @@ from bot.qr import register_qr, register_qrurl
 #from bot.nct import register_nct
 from bot.scl import register_scl
 from bot.img import register_img
+from bot.nude import register_nude
 from bot.girl import register_girl
 from bot.anime import register_anime
 from bot.emoji import register_emoji
@@ -46,6 +40,7 @@ register_qr(bot)
 #register_nct(bot)
 register_scl(bot)
 register_img(bot)
+register_nude(bot)
 register_girl(bot)
 register_qrurl(bot)
 register_anime(bot)
