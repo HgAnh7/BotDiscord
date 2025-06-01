@@ -40,17 +40,20 @@ def register_bancheck(bot):
             await interaction.followup.send(f"❌ Lỗi: {result['error']}", ephemeral=True)
             return
 
-        embed = discord.Embed(
-            title="Kiểm Tra Trạng Thái Tài Khoản Free Fire",
-            color=discord.Color.red() if result["is_banned"] else discord.Color.green()
-        )
-        embed.add_field(name="UID", value=result["uid"], inline=False)
-        embed.add_field(
-            name="Trạng Thái",
-            value="🔴 BỊ CẤM" if result["is_banned"] else "🟢 KHÔNG BỊ CẤM",
-            inline=False
-        )
-        if result["is_banned"]:
-            embed.add_field(name="Thời Gian Cấm", value=f"{result['ban_period']} ngày", inline=False)
+        is_banned = result["is_banned"]
+        status_text = "🔴 BỊ CẤM" if is_banned else "🟢 KHÔNG BỊ CẤM"
 
+        # Mô tả chi tiết
+        description = f"**UID:** {result['uid']}\n**Trạng thái:** {status_text}"
+        if is_banned:
+            description += f"\n**Thời gian cấm:** {result['ban_period']} ngày"
+
+        # Gửi embed
+        embed = discord.Embed(
+            title="🛡️ Kiểm Tra Trạng Thái Tài Khoản Free Fire",
+            description=description,
+            color=discord.Color.red() if is_banned else discord.Color.green()
+        )
+
+        await interaction.followup.send(embed=embed)
         await interaction.followup.send(embed=embed)
