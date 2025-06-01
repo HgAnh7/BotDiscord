@@ -5,8 +5,8 @@ import requests
 from discord.ext import commands
 
 ALLOWED_CHANNELS = [
-    1375707188252901376,  # Thay bằng ID kênh thực tế
-    1375707367051886654,  # Có thể thêm nhiều kênh
+    1375707188252901376,
+    1375707367051886654,
 ]
 
 def register_nude(bot: commands.Bot):
@@ -54,7 +54,7 @@ def register_nude(bot: commands.Bot):
                 ext = "jpg"  # Mặc định nếu không xác định được
             
             image_file = discord.File(io.BytesIO(resp.content), filename=f"cosplay_image.{ext}")
-            await interaction.followup.send(f"Đây là ảnh cosplay ngẫu nhiên cho {interaction.user.mention}:", file=image_file)
+            await interaction.followup.send(f"Đây là ảnh nude ngẫu nhiên cho {interaction.user.mention}:", file=image_file)
             
         except Exception as e:
             await interaction.followup.send(f"Lỗi: {e}")
