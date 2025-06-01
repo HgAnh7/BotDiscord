@@ -56,4 +56,3 @@ def register_bancheck(bot):
         )
 
         await interaction.followup.send(embed=embed)
-        await interaction.followup.send(embed=embed)
