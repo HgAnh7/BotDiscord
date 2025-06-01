@@ -83,11 +83,19 @@ def register_smsvip(bot):
         # Update last use time
         last_spam_time[user.id] = datetime.now()
         
-        # Send response
-        embed = discord.Embed(title="🚀 Spam VIP", color=0x00ff00)
-        embed.add_field(name="📱 Mục tiêu", value=phone, inline=True)
-        embed.add_field(name="🍃 Vòng lặp", value=loops, inline=True)
-        embed.set_footer(text="Auto-stop after 500s")
+        # Send response in description format
+        description = (
+            f"**📱 Mục tiêu:** {phone}\n"
+            f"**🍃 Vòng lặp:** {loops:,}\n"
+            f"**⏳ Trạng thái:** Đang khởi chạy...\n"
+            f"**⛔ Tự động dừng sau:** 500 giây"
+        )
+        
+        embed = discord.Embed(
+            title="🚀 Spam SMS VIP",
+            description=description,
+            color=discord.Color.green()
+        )
         
         await interaction.response.send_message(embed=embed)
         
