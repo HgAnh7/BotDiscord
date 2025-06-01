@@ -17,6 +17,7 @@ from bot.anime import register_anime
 from bot.emoji import register_emoji
 from bot.images import register_images
 from bot.smsvip import register_smsvip
+from bot.bancheck import register_bancheck
 from bot.cosplay import register_cosplay
 from bot.sourceweb import register_sourceweb
 
@@ -47,6 +48,7 @@ register_anime(bot)
 register_emoji(bot)
 register_smsvip(bot)
 register_images(bot)
+register_bancheck(bot)
 register_cosplay(bot)
 register_sourceweb(bot)
 
