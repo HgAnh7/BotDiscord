@@ -18,7 +18,7 @@ def register_images(bot: commands.Bot):
         # Kiểm tra limit có hợp lệ không
         if limit <= 0:
             await ctx.response.send_message(
-                "Vui lòng nhập `limit` là một số nguyên dương.", ephemeral=True
+                "Vui lòng nhập limit là một số nguyên dương.", ephemeral=True
             )
             return
 
@@ -80,7 +80,7 @@ def register_images(bot: commands.Bot):
             limit = total_found
 
         # Đánh số và chia thành chunk (mỗi tin nhắn tối đa 2000 ký tự)
-        numbered = [f"{i+1}. {img_url}" for i, img_url in enumerate(image_urls)]
+        numbered = [f"{i+1}. <{img_url}>" for i, img_url in enumerate(image_urls)]
         chunks = []
         current_chunk = ""
 
