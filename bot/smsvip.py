@@ -99,6 +99,7 @@ def register_smsvip(bot):
             # Dừng tiến trình cũ nếu có
             if user.id in spam_processes:
                 old_process = spam_processes[user.id]
+                # Sử dụng returncode thay vì poll() cho asyncio subprocess
                 if old_process.returncode is None:
                     old_process.terminate()
                     try:
@@ -146,6 +147,7 @@ def register_smsvip(bot):
         
         try:
             process = spam_processes[user.id]
+            # Sử dụng returncode thay vì poll() cho asyncio subprocess
             if process.returncode is None:
                 process.terminate()
                 await asyncio.wait_for(process.wait(), timeout=3)
