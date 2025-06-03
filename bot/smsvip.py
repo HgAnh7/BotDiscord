@@ -77,7 +77,7 @@ def create_embed(title, phone, loops, status, color):
     """Tạo embed message thống nhất"""
     return discord.Embed(
         title=title,
-        description=f"**📱 SĐT:** {phone}\n**🔄 Loops:** {loops:,}\n**📊 Trạng thái:** {status}",
+        description=f"**📱 SĐT:** {phone}\n**🍃 Loops:** {loops:,}\n**📊 Trạng thái:** {status}",
         color=color
     )
 
