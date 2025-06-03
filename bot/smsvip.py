@@ -6,6 +6,7 @@ from datetime import datetime
 from discord.ext import commands
 from discord import app_commands
 
+spam_processes = {}
 last_spam_time = {}
 spam_process = None
 VIP_FILE = "bot/spam/vip.json"
@@ -24,10 +25,9 @@ def save_vip_data(data):
     with open(VIP_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
-def is_vip(user_id, username):
-    """Check if user is VIP"""
+def is_vip(user_id):
     vip_data = load_vip_data()
-    return username in vip_data or user_id in vip_data.values()
+    return str(user_id) in vip_data
 
 def validate_phone(phone):
     """Validate phone number format"""
@@ -50,22 +50,23 @@ def register_smsvip(bot):
             return await interaction.response.send_message("❌ Không có quyền!", ephemeral=True)
         
         vip_data = load_vip_data()
-        if user.name in vip_data:
+        if str(user.id) in vip_data:
             return await interaction.response.send_message(f"✅ {user.mention} đã là VIP!", ephemeral=True)
         
-        vip_data[user.name] = user.id
+        vip_data[str(user.id)] = user.name
+
         save_vip_data(vip_data)
         await interaction.response.send_message(f"✅ Đã thêm {user.mention} vào VIP!")
 
     @bot.tree.command(name="smsvip", description="Spam SMS (VIP only)")
     @app_commands.describe(phone="Số điện thoại", loops="Số lần gửi (1–1000)")
     async def spam_sms(interaction: discord.Interaction, phone: str, loops: int):
-        global last_spam_time, spam_process
+        global last_spam_time, spam_processes
         
         user = interaction.user
         
         # Check VIP status
-        if not is_vip(user.id, user.name):
+        if not is_vip(user.id):
             return await interaction.response.send_message("❌ Chỉ VIP mới dùng được!", ephemeral=True)
         
         # Check cooldown
@@ -77,8 +78,8 @@ def register_smsvip(bot):
         if not validate_phone(phone):
             return await interaction.response.send_message("❌ SĐT phải 10 số, bắt đầu bằng 0!", ephemeral=True)
         
-        if not (1 <= loops <= 100):
-            return await interaction.response.send_message("❌ Vòng lặp: 1-100!", ephemeral=True)
+        if not (1 <= loops <= 1000):
+            return await interaction.response.send_message("❌ Vòng lặp: 1-1000!", ephemeral=True)
         
         # Update last use time
         last_spam_time[user.id] = datetime.now()
@@ -88,7 +89,6 @@ def register_smsvip(bot):
             f"**📱 Mục tiêu:** {phone}\n"
             f"**🍃 Vòng lặp:** {loops:,}\n"
             f"**⏳ Trạng thái:** Đang khởi chạy...\n"
-            f"**⛔ Tự động dừng sau:** 500 giây"
         )
         
         embed = discord.Embed(
@@ -100,21 +100,11 @@ def register_smsvip(bot):
         await interaction.response.send_message(embed=embed)
         
         # Stop old process and start new one
-        if spam_process and spam_process.poll() is None:
-            spam_process.terminate()
+        if user.id in spam_processes and spam_processes[user.id].poll() is None:
+            spam_processes[user.id].terminate()
         
         try:
-            spam_process = subprocess.Popen(["python3", "bot/spam/smsvip.py", phone, "200"])
-            
-            # Auto-stop after 500s
-            async def auto_stop():
-                global spam_process
-                await asyncio.sleep(500)
-                if spam_process and spam_process.poll() is None:
-                    spam_process.terminate()
-                    spam_process = None
-            
-            asyncio.create_task(auto_stop())
+            spam_processes[user.id] = subprocess.Popen(["python3", "bot/spam/smsvip.py", phone, str(loops)])
             
         except Exception as e:
             await interaction.followup.send(f"❌ Lỗi: {e}", ephemeral=True)
