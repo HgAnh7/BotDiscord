@@ -40,7 +40,7 @@ async def send_ngl_message(username: str, tinhan: str) -> bool:
         print(f"Error sending message to ngl.link: {e}")
     return False
 
-def register_nglattack(bot: commands.Bot):
+def register_ngl(bot: commands.Bot):
     """
     Đăng ký lệnh slash /ngl cho bot.
     Tham số:
