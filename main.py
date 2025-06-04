@@ -39,7 +39,7 @@ async def on_ready():
 # Đăng ký các lệnh/sự kiện từ các module (các hàm register_ cần được chuyển hướng theo discord.py)
 register_qr(bot)
 #register_nct(bot)
-register_ngl
+register_ngl(bot)
 register_scl(bot)
 register_img(bot)
 #register_nude(bot)
