@@ -4,6 +4,7 @@ from discord.ext import commands
 from notification import register_notification
 from bot.qr import register_qr, register_qrurl
 #from bot.nct import register_nct
+from bot.ngl import register_ngl
 from bot.scl import register_scl
 from bot.img import register_img
 from bot.nude import register_nude
@@ -38,6 +39,7 @@ async def on_ready():
 # Đăng ký các lệnh/sự kiện từ các module (các hàm register_ cần được chuyển hướng theo discord.py)
 register_qr(bot)
 #register_nct(bot)
+register_ngl
 register_scl(bot)
 register_img(bot)
 #register_nude(bot)
