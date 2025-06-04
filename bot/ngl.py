@@ -49,30 +49,31 @@ def register_ngl(bot: commands.Bot):
      • tinhan: Nội dung tin nhắn.
      • solan: Số lần gửi tin nhắn.
     """
-    @bot.slash_command(name="ngl", description="Spam tin nhắn NGL")
-    async def ngl(
-        ctx: discord.ApplicationContext,
-        username: str,
-        tinhan: str,
-        solan: int
-    ):
+    
+    @bot.tree.command(name="ngl", description="Spam tin nhắn NGL")
+    async def ngl(interaction: discord.Interaction, username: str, tinhan: str, solan: int):
         username = username.strip()
         tinhan = tinhan.strip()
 
         if not username or not tinhan:
-            await ctx.respond("Username và tin nhắn không được để trống.", ephemeral=True)
+            await interaction.response.send_message("Username và tin nhắn không được để trống.", ephemeral=True)
             return
 
         if solan <= 0:
-            await ctx.respond("Số lượng tin nhắn phải lớn hơn 0.", ephemeral=True)
+            await interaction.response.send_message("Số lượng tin nhắn phải lớn hơn 0.", ephemeral=True)
             return
 
         success_count = 0
         failure_count = 0
 
         # Gửi phản hồi đầu tiên của lệnh
-        await ctx.respond(f"Bắt đầu gửi {solan} tin nhắn đến **{username}** với nội dung: **{tinhan}**", ephemeral=True)
+        await interaction.response.send_message(
+            f"Bắt đầu gửi {solan} tin nhắn đến **{username}** với nội dung: **{tinhan}**", 
+            ephemeral=True
+        )
 
+        # Vì chúng ta đã sử dụng interaction.response.send_message ở lần đầu,
+        # hãy dùng interaction.followup.send cho các phản hồi sau.
         for i in range(solan):
             result = await send_ngl_message(username, tinhan)
             if result:
@@ -82,7 +83,7 @@ def register_ngl(bot: commands.Bot):
                 failure_count += 1
                 # Nếu gửi thất bại liên tiếp đạt giới hạn, tạm dừng 60 giây trước khi tiếp tục
                 if failure_count >= LIMIT:
-                    await ctx.followup.send("Đã gặp quá nhiều lỗi, tạm dừng 60 giây...", ephemeral=True)
+                    await interaction.followup.send("Đã gặp quá nhiều lỗi, tạm dừng 60 giây...", ephemeral=True)
                     await asyncio.sleep(60)
                     failure_count = 0
             await asyncio.sleep(DELAY)
@@ -93,4 +94,4 @@ def register_ngl(bot: commands.Bot):
             f"Tổng số yêu cầu: {solan}\n"
             f"Tổng tin nhắn thất bại: {solan - success_count}"
         )
-        await ctx.followup.send(reply)
+        await interaction.followup.send(reply)
