@@ -6,8 +6,8 @@ from discord.ext import commands
 
 # Cấu hình các hằng số cần thiết (không dùng các tên ZPROJECT)
 LIMIT = 10         # Số lần gửi thất bại liên tiếp tối đa cho phép trước khi tạm dừng.
-TIMEOUT = 10      # Thời gian timeout cho mỗi request (đơn vị giây).
-DELAY = 0         # Delay giữa các lần gửi request (đơn vị giây).
+TIMEOUT = 10       # Thời gian timeout cho mỗi request (đơn vị giây).
+DELAY = 0          # Delay giữa các lần gửi request (đơn vị giây).
 API_URL = 'https://ngl.link/api/submit'
 
 async def send_ngl_message(username: str, tinhan: str) -> bool:
@@ -33,8 +33,9 @@ async def send_ngl_message(username: str, tinhan: str) -> bool:
     }
     
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(API_URL, data=data, headers=headers, timeout=TIMEOUT) as response:
+        timeout = aiohttp.ClientTimeout(total=TIMEOUT)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(API_URL, data=data, headers=headers) as response:
                 return response.status == 200
     except Exception as e:
         print(f"Error sending message to ngl.link: {e}")
@@ -69,18 +70,19 @@ def register_ngl(bot: commands.Bot):
         success_count = 0
         failure_count = 0
 
-        await ctx.respond(f"Bắt đầu gửi {solan} tin nhắn đến **{username}** với nội dung: **{tinhan}**")
+        # Gửi phản hồi đầu tiên của lệnh
+        await ctx.respond(f"Bắt đầu gửi {solan} tin nhắn đến **{username}** với nội dung: **{tinhan}**", ephemeral=True)
 
         for i in range(solan):
             result = await send_ngl_message(username, tinhan)
             if result:
                 success_count += 1
-                failure_count = 0  # reset bước đếm thất bại nếu gửi thành công
+                failure_count = 0  # reset nếu gửi thành công
             else:
                 failure_count += 1
                 # Nếu gửi thất bại liên tiếp đạt giới hạn, tạm dừng 60 giây trước khi tiếp tục
                 if failure_count >= LIMIT:
-                    await ctx.send("Đã gặp quá nhiều lỗi, tạm dừng 60 giây...", ephemeral=True)
+                    await ctx.followup.send("Đã gặp quá nhiều lỗi, tạm dừng 60 giây...", ephemeral=True)
                     await asyncio.sleep(60)
                     failure_count = 0
             await asyncio.sleep(DELAY)
@@ -91,4 +93,4 @@ def register_ngl(bot: commands.Bot):
             f"Tổng số yêu cầu: {solan}\n"
             f"Tổng tin nhắn thất bại: {solan - success_count}"
         )
-        await ctx.send(reply)
+        await ctx.followup.send(reply)
