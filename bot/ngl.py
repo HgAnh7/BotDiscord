@@ -1,97 +1,88 @@
-# File: bot/ngl.py
-import asyncio
-import aiohttp
+# bot/ngl.py
+import threading
+import random
+import time
+import requests
 import discord
+from discord import app_commands
 from discord.ext import commands
 
-# Cấu hình các hằng số cần thiết (không dùng các tên ZPROJECT)
-LIMIT = 10         # Số lần gửi thất bại liên tiếp tối đa cho phép trước khi tạm dừng.
-TIMEOUT = 10       # Thời gian timeout cho mỗi request (đơn vị giây).
-DELAY = 0          # Delay giữa các lần gửi request (đơn vị giây).
-API_URL = 'https://ngl.link/api/submit'
+EMOJIS = [
+    "😂", "😍", "🥺", "😎", "🤔", "😏", "😢", "😳", "🙄", "😇",
+    "🤪", "😬", "😈", "🥵", "🤡", "💀", "👻", "🎃", "💩", "👽",
+]
 
-async def send_ngl_message(username: str, tinhan: str) -> bool:
-    """
-    Gửi một tin nhắn đến API của ngl.link với các header và dữ liệu cần thiết.
-    Nếu nhận được HTTP status 200 thì trả về True, ngược lại trả về False.
-    """
-    headers = {
-        'Host': 'ngl.link',
-        'Accept': '*/*',
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'X-Requested-With': 'XMLHttpRequest',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Origin': 'https://ngl.link',
-        'Referer': f'https://ngl.link/{username}'
-    }
-    data = {
-        'username': username,
-        'question': tinhan,
-        'deviceId': '0',
-        'gameSlug': '',
-        'referrer': ''
-    }
-    
+def get_random_emoji():
+    return random.choice(EMOJIS)
+
+def send_message(username, question, use_emoji):
     try:
-        timeout = aiohttp.ClientTimeout(total=TIMEOUT)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.post(API_URL, data=data, headers=headers) as response:
-                return response.status == 200
-    except Exception as e:
-        print(f"Error sending message to ngl.link: {e}")
-    return False
+        url = f"https://ngl.link/api/submit"
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "NGL-Android/1.2.7",
+        }
+
+        payload = {
+            "username": username,
+            "question": question + (" " + get_random_emoji() if use_emoji else ""),
+            "deviceId": ''.join(random.choices('abcdef0123456789', k=16))
+        }
+
+        response = requests.post(url, headers=headers, data=payload)
+        return response.status_code == 200
+
+    except Exception:
+        return False
+
+def spam_ngl(username, threads, question, use_emoji):
+    success_count = 0
+    lock = threading.Lock()
+
+    def worker():
+        nonlocal success_count
+        if send_message(username, question, use_emoji):
+            with lock:
+                success_count += 1
+
+    thread_list = []
+
+    for _ in range(threads):
+        t = threading.Thread(target=worker)
+        t.start()
+        thread_list.append(t)
+
+    for t in thread_list:
+        t.join()
+
+    return success_count
 
 def register_ngl(bot: commands.Bot):
-    """
-    Đăng ký lệnh slash /ngl cho bot.
-    Tham số:
-     • username: Tên người dùng trên ngl.link.
-     • tinhan: Nội dung tin nhắn.
-     • solan: Số lần gửi tin nhắn.
-    """
-    
-    @bot.tree.command(name="ngl", description="Spam tin nhắn NGL")
-    async def ngl(interaction: discord.Interaction, username: str, tinhan: str, solan: int):
-        username = username.strip()
-        tinhan = tinhan.strip()
+    @bot.tree.command(name="ngl", description="Spam tin ẩn danh tới NGL profile")
+    @app_commands.describe(
+        username="Tên NGL (ngl.link/username)",
+        threads="Số luồng gửi (khuyên dùng < 50)",
+        message="Nội dung tin nhắn ẩn danh",
+        emoji="Bật emoji ngẫu nhiên? (yes/no)"
+    )
+    async def ngl_command(
+        interaction: discord.Interaction,
+        username: str,
+        threads: int,
+        message: str = "",
+        emoji: str = "no"
+    ):
+        await interaction.response.defer(thinking=True)
 
-        if not username or not tinhan:
-            await interaction.response.send_message("Username và tin nhắn không được để trống.", ephemeral=True)
+        use_emoji = emoji.lower() in ["yes", "true", "on", "1"]
+        if threads > 100:
+            await interaction.followup.send("⚠️ Số luồng quá lớn! Vui lòng nhập giá trị ≤ 100.")
             return
 
-        if solan <= 0:
-            await interaction.response.send_message("Số lượng tin nhắn phải lớn hơn 0.", ephemeral=True)
-            return
-
-        success_count = 0
-        failure_count = 0
-
-        # Gửi phản hồi đầu tiên của lệnh
-        await interaction.response.send_message(
-            f"Bắt đầu gửi {solan} tin nhắn đến **{username}** với nội dung: **{tinhan}**", 
-            ephemeral=True
-        )
-
-        # Vì chúng ta đã sử dụng interaction.response.send_message ở lần đầu,
-        # hãy dùng interaction.followup.send cho các phản hồi sau.
-        for i in range(solan):
-            result = await send_ngl_message(username, tinhan)
-            if result:
-                success_count += 1
-                failure_count = 0  # reset nếu gửi thành công
-            else:
-                failure_count += 1
-                # Nếu gửi thất bại liên tiếp đạt giới hạn, tạm dừng 60 giây trước khi tiếp tục
-                if failure_count >= LIMIT:
-                    await interaction.followup.send("Đã gặp quá nhiều lỗi, tạm dừng 60 giây...", ephemeral=True)
-                    await asyncio.sleep(60)
-                    failure_count = 0
-            await asyncio.sleep(DELAY)
-
-        reply = (
-            f"**Attack Thành Công trên ngl.link**\n"
-            f"Tổng tin nhắn gửi thành công: {success_count}\n"
-            f"Tổng số yêu cầu: {solan}\n"
-            f"Tổng tin nhắn thất bại: {solan - success_count}"
-        )
-        await interaction.followup.send(reply)
+        try:
+            success = spam_ngl(username, threads, message, use_emoji)
+            await interaction.followup.send(
+                f"✅ Đã gửi thành công `{success}` tin nhắn tới `{username}`!"
+            )
+        except Exception as e:
+            await interaction.followup.send(f"❌ Lỗi xảy ra: `{e}`")
