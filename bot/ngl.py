@@ -1,88 +1,66 @@
-# bot/ngl.py
-import threading
+import aiohttp
+import asyncio
 import random
-import time
-import requests
-import discord
+import json
 from discord import app_commands
 from discord.ext import commands
 
-EMOJIS = [
-    "😂", "😍", "🥺", "😎", "🤔", "😏", "😢", "😳", "🙄", "😇",
-    "🤪", "😬", "😈", "🥵", "🤡", "💀", "👻", "🎃", "💩", "👽",
+HEADERS = {
+    'User-Agent': 'NGL/6.7.8 (iPhone; iOS 16.0; Scale/2.00)',
+    'Accept': '*/*',
+    'Accept-Language': 'en-US',
+    'Content-Type': 'application/x-www-form-urlencoded',
+}
+
+MESSAGES = [
+    "Bạn thật quyến rũ 😍", "Tôi thích phong cách của bạn!", "Bạn rất thông minh 🤓",
+    "Nụ cười của bạn làm ngày tôi tốt hơn 😊", "Bạn thật dễ thương 🥺",
+    "Ai mà không thích bạn chứ? 😘", "Bạn là người bạn tuyệt vời 🫶",
 ]
 
-def get_random_emoji():
-    return random.choice(EMOJIS)
-
-def send_message(username, question, use_emoji):
+async def send_ngl_message(session, username, message):
     try:
-        url = f"https://ngl.link/api/submit"
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "NGL-Android/1.2.7",
-        }
-
         payload = {
             "username": username,
-            "question": question + (" " + get_random_emoji() if use_emoji else ""),
-            "deviceId": ''.join(random.choices('abcdef0123456789', k=16))
+            "question": message,
+            "deviceId": "".join(random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=16)),
         }
 
-        response = requests.post(url, headers=headers, data=payload)
-        return response.status_code == 200
-
-    except Exception:
+        async with session.post("https://ngl.link/api/submit", data=payload, headers=HEADERS) as resp:
+            if resp.status == 200:
+                return True
+            else:
+                text = await resp.text()
+                print(f"Lỗi gửi: {resp.status} - {text}")
+                return False
+    except Exception as e:
+        print(f"Lỗi khi gửi tin nhắn: {e}")
         return False
 
-def spam_ngl(username, threads, question, use_emoji):
-    success_count = 0
-    lock = threading.Lock()
+async def spam_ngl(ctx, username, count):
+    success = 0
+    failed = 0
 
-    def worker():
-        nonlocal success_count
-        if send_message(username, question, use_emoji):
-            with lock:
-                success_count += 1
+    await ctx.response.send_message(f"⏳ Bắt đầu spam {count} tin nhắn đến `{username}`...")
 
-    thread_list = []
+    async with aiohttp.ClientSession() as session:
+        for _ in range(count):
+            message = random.choice(MESSAGES)
+            result = await send_ngl_message(session, username, message)
+            if result:
+                success += 1
+            else:
+                failed += 1
+            await asyncio.sleep(random.uniform(0.8, 1.5))  # tránh spam quá nhanh
 
-    for _ in range(threads):
-        t = threading.Thread(target=worker)
-        t.start()
-        thread_list.append(t)
-
-    for t in thread_list:
-        t.join()
-
-    return success_count
+    result_msg = f"✅ Đã gửi `{success}` tin nhắn thành công, `{failed}` thất bại tới `{username}`!"
+    await ctx.followup.send(result_msg)
 
 def register_ngl(bot: commands.Bot):
-    @bot.tree.command(name="ngl", description="Spam tin ẩn danh tới NGL profile")
-    @app_commands.describe(
-        username="Tên NGL (ngl.link/username)",
-        threads="Số luồng gửi (khuyên dùng < 50)",
-        message="Nội dung tin nhắn ẩn danh",
-        emoji="Bật emoji ngẫu nhiên? (yes/no)"
-    )
-    async def ngl_command(
-        interaction: discord.Interaction,
-        username: str,
-        threads: int,
-        message: str = "",
-        emoji: str = "no"
-    ):
-        await interaction.response.defer(thinking=True)
-
-        use_emoji = emoji.lower() in ["yes", "true", "on", "1"]
-        if threads > 100:
-            await interaction.followup.send("⚠️ Số luồng quá lớn! Vui lòng nhập giá trị ≤ 100.")
+    @bot.tree.command(name="ngl", description="Spam tin nhắn ẩn danh đến NGL link")
+    @app_commands.describe(username="Tên người dùng NGL (không kèm ngl.link)", count="Số lượng tin nhắn muốn gửi (mặc định: 5)")
+    async def ngl_command(interaction, username: str, count: int = 5):
+        if count > 100:
+            await interaction.response.send_message("⚠️ Số lượng quá lớn. Vui lòng gửi tối đa 100 tin nhắn.", ephemeral=True)
             return
-
-        try:
-            success = spam_ngl(username, threads, message, use_emoji)
-            await interaction.followup.send(
-                f"✅ Đã gửi thành công `{success}` tin nhắn tới `{username}`!"
-            )
-        except Exception as e:
-            await interaction.followup.send(f"❌ Lỗi xảy ra: `{e}`")
+        await spam_ngl(interaction, username, count)
