@@ -205,11 +205,13 @@ def register_scl(bot):
         lines = []
         for i, track in enumerate(tracks):
             artist = track['user']['username']
-            lines.append(f"**{i + 1}. {track['title']}**")
-            lines.append(f"👤 Nghệ sĩ: {artist}\n")
-            lines.append(f"📊 Lượt nghe: {track['playback_count']:,} | Thích: {track['likes_count']:,}\n\n")
+            lines.append(
+                f"**{i + 1}. {track['title']}**\n"
+                f"**» Nghệ sĩ:** {artist}\n"
+                f"**» Lượt nghe:** {track['playback_count']:,} | Thích: {track['likes_count']:,}"
+            )
 
-        embed.description = "\n".join(lines) + "\n**💡 Chọn số bài hát bạn muốn tải!**"
+        embed.description = "\n\n".join(lines) + "\n\n**💡 Chọn số bài hát bạn muốn tải!**"
 
         view = SoundCloudView(tracks, interaction.user.id, interaction)
         await interaction.response.send_message(embed=embed, view=view)
