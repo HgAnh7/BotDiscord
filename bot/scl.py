@@ -81,6 +81,7 @@ class SoundCloudView(discord.ui.View):
         self.tracks = tracks
         self.user_id = user_id
         self.interaction = interaction
+        self.chosen = False
         
         # Tạo buttons (maximum 25 buttons per view)
         for i in range(min(len(tracks), 25)):
@@ -101,6 +102,8 @@ class SoundCloudView(discord.ui.View):
                     ephemeral=True
                 )
                 return
+                
+            self.chosen = True
             
             # Parse button index
             track_index = int(interaction.data['custom_id'].split('_')[1])
@@ -177,7 +180,8 @@ class SoundCloudView(discord.ui.View):
     
     async def on_timeout(self):
         try:
-            await self.interaction.delete_original_response()
+            if not self.chosen:
+                await self.interaction.delete_original_response()
         except Exception:
             pass  # Có thể message đã bị xóa tay hoặc lỗi quyền, nên bỏ qua
 
@@ -203,9 +207,9 @@ def register_scl(bot):
         for i, track in enumerate(tracks):
             lines.append(f"**{i + 1}. {track['title']}**")
             lines.append(f"» Nghệ sĩ: {track['user']['username']}")
-            lines.append(f"» Lượt nghe: {track['playback_count']:,} | **Thích:** {track['likes_count']:,}**\n")
+            lines.append(f"» Lượt nghe: {track['playback_count']:,} | **Thích:** {track['likes_count']:,}**")
         lines.append("**💡 Chọn số bài hát bạn muốn tải!**")
-        embed.description = "\n".join(lines)
+        embed.description = "\n\n".join(lines)
 
         view = SoundCloudView(tracks, interaction.user.id, interaction)
         await interaction.response.send_message(embed=embed, view=view)
