@@ -197,21 +197,16 @@ def register_scl(bot):
             await interaction.response.send_message("🚫 Không tìm thấy bài hát nào có hình ảnh.")
             return
 
-        embed = discord.Embed(
-            title="🎵 Kết quả tìm kiếm trên SoundCloud",
-            color=0xff7700
-        )
+        embed = discord.Embed(color=0xff7700)
         
-        lines = []
+        lines = ["**🎵 Kết quả tìm kiếm trên SoundCloud**"]
         for i, track in enumerate(tracks):
             artist = track['user']['username']
-            lines.append(
-                f"**{i + 1}. {track['title']}**"
-                f"**» Nghệ sĩ:** {artist}\n"
-                f"**» Lượt nghe:** {track['playback_count']:,} | **Thích:** {track['likes_count']:,}"
-            )
-
-        embed.description = "\n\n".join(lines) + "\n\n**💡 Chọn số bài hát bạn muốn tải!**"
+            lines.append(f"**{i + 1}. {track['title']}**")
+            lines.append(f"**» Nghệ sĩ:** {artist}")
+            lines.append(f"**» Lượt nghe:** {track['playback_count']:,} | **Thích:** {track['likes_count']:,}")
+        lines.append("**💡 Chọn số bài hát bạn muốn tải!**")
+        embed.description = "\n".join(lines)
 
         view = SoundCloudView(tracks, interaction.user.id, interaction)
         await interaction.response.send_message(embed=embed, view=view)
