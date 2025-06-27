@@ -1,4 +1,4 @@
-# bot/emoji.py
+# bot/reaction.py
 import random
 import discord
 from discord.ext import commands
@@ -27,7 +27,7 @@ server_emoji = [
     1375694136497279037
 ]
 
-def register_emoji(bot: commands.Bot):
+def register_reaction(bot: commands.Bot):
     @bot.event
     async def on_message(message: discord.Message):
         if message.author.bot:
@@ -36,13 +36,8 @@ def register_emoji(bot: commands.Bot):
         try:
             # 50% khả năng dùng emoji server, 50% emoji thường
             if random.random() < 0.5:
-                emoji_id = random.choice(server_emoji)
-                emoji = bot.get_emoji(emoji_id)
-                if emoji:
-                    await message.add_reaction(emoji)
-                else:
-                    # Fallback nếu không lấy được emoji server
-                    await message.add_reaction(random.choice(emoji_list))
+                emoji = bot.get_emoji(random.choice(server_emoji))
+                await message.add_reaction(emoji or random.choice(emoji_list))
             else:
                 await message.add_reaction(random.choice(emoji_list))
 
