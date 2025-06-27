@@ -206,9 +206,9 @@ def register_scl(bot):
         for i, track in enumerate(tracks):
             artist = track['user']['username']
             lines.append(
-                f"**{i + 1}. {track['title']}**\n"
+                f"**{i + 1}. {track['title']}**"
                 f"**» Nghệ sĩ:** {artist}\n"
-                f"**» Lượt nghe:** {track['playback_count']:,} | Thích: {track['likes_count']:,}"
+                f"**» Lượt nghe:** {track['playback_count']:,} | **Thích:** {track['likes_count']:,}"
             )
 
         embed.description = "\n\n".join(lines) + "\n\n**💡 Chọn số bài hát bạn muốn tải!**"
