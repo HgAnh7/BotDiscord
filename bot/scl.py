@@ -205,7 +205,7 @@ def register_scl(bot):
             lines.append(
                 f"**{i + 1}. {track['title']}**\n"
                 f"**» Nghệ sĩ:** {artist}\n"
-                f"**» Lượt nghe:** {track['playback_count']:,} | **Thích:** {track['likes_count']:,}**\n"
+                f"**» Lượt nghe:** {track['playback_count']:,} | **Thích:** {track['likes_count']:,}**"
             )
 
         lines.append("**💡 Chọn số bài hát bạn muốn tải!**")
