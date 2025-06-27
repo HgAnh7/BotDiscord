@@ -10,7 +10,7 @@ from bot.img import register_img
 from bot.nude import register_nude
 from bot.girl import register_girl
 from bot.anime import register_anime
-from bot.emoji import register_emoji
+from bot.reaction import register_reaction
 from bot.images import register_images
 from bot.smsvip import register_smsvip
 from bot.bancheck import register_bancheck
@@ -46,7 +46,7 @@ register_img(bot)
 #register_girl(bot)
 register_qrurl(bot)
 #register_anime(bot)
-register_emoji(bot)
+register_reaction(bot)
 register_smsvip(bot)
 register_images(bot)
 register_bancheck(bot)
