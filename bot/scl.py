@@ -158,13 +158,10 @@ class SoundCloudView(discord.ui.View):
                 audio_buffer.name = f"{track['title']}.mp3"
                 
                 # Gửi embed và file audio
-                for item in self.children:
-                    item.disabled = True
                 await interaction.edit_original_response(
                     content=None,
                     embed=embed,
                     attachments=[discord.File(audio_buffer, filename=audio_buffer.name)],
-                    view=self
                 )
                     
             except Exception as e:
