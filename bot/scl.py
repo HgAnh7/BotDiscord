@@ -93,9 +93,9 @@ class SoundCloudView(discord.ui.View):
     
     async def button_callback(self, interaction: discord.Interaction):
         try:
-            # Kiểm tra quyền truy cập
+            await interaction.response.defer()
             if interaction.user.id != self.user_id:
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "❌ Bạn không có quyền sử dụng nút này!",
                     ephemeral=True
                 )
@@ -106,7 +106,7 @@ class SoundCloudView(discord.ui.View):
             
             # Kiểm tra index hợp lệ
             if track_index >= len(self.tracks):
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "❌ Lựa chọn không hợp lệ!",
                     ephemeral=True
                 )
@@ -115,7 +115,6 @@ class SoundCloudView(discord.ui.View):
             track = self.tracks[track_index]
             artist = track['user']['username']
             
-            # Response với loading message
             await interaction.edit_original_response(
                 content=f"🧭 Đang tải: **{track['title']}**\n👤 Nghệ sĩ: {artist}\n\n⏳ Vui lòng chờ...",
                 embed=None,
@@ -148,8 +147,11 @@ class SoundCloudView(discord.ui.View):
 
                 content_length = int(resp.headers.get('Content-Length', 0))
                 if content_length > 8 * 1024 * 1024:  # Giới hạn 8MB
+                    for item in self.children:
+                        item.disabled = True
                     await interaction.edit_original_response(
                         content=f"🚫 File nhạc quá lớn (>8MB) nên không thể gửi qua Discord.\n🎧 **[Nhấn vào đây để tải nhạc]({audio_url})**",
+                        view=self
                     )
                     return
 
@@ -158,10 +160,13 @@ class SoundCloudView(discord.ui.View):
                 audio_buffer.name = f"{track['title']}.mp3"
                 
                 # Gửi embed và file audio
+                for item in self.children:
+                    item.disabled = True
                 await interaction.edit_original_response(
                     content=None,
                     embed=embed,
-                    attachments=[discord.File(audio_buffer, filename=audio_buffer.name)]
+                    attachments=[discord.File(audio_buffer, filename=audio_buffer.name)],
+                    view=self
                 )
                     
             except Exception as e:
@@ -170,7 +175,7 @@ class SoundCloudView(discord.ui.View):
                 )
                 
         except Exception as e:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"❌ Có lỗi xảy ra: {str(e)}",
                 ephemeral=True
             )
