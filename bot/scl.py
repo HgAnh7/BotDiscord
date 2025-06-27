@@ -1,259 +1,174 @@
-# bot/scl.py
 import io
 import os
 import re
 import json
-import random
-import discord
 import requests
+import discord
+from discord.ext import commands
+from discord import ui
 
-# Biến toàn cục và cấu hình
+# --- Cấu hình chung ---
 API_BASE = "https://api-v2.soundcloud.com"
 CONFIG_PATH = "config.json"
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
-]
-ACCEPT_LANGUAGES = [
-    "en-US,en;q=0.9",
-    "fr-FR,fr;q=0.9",
-    "es-ES,es;q=0.9",
-    "de-DE,de;q=0.9",
-    "zh-CN,zh;q=0.9",
-]
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+}
 
-def get_random_element(array):
-    return random.choice(array)
-
-def get_headers():
-    return {
-        "User-Agent": get_random_element(USER_AGENTS),
-        "Accept-Language": get_random_element(ACCEPT_LANGUAGES),
-        "Referer": "https://soundcloud.com/",
-        "Upgrade-Insecure-Requests": "1",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    }
+# --- Hàm hỗ trợ SoundCloud ---
 
 def get_client_id():
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH, 'r') as f:
+            cfg = json.load(f)
+            if cfg.get('client_id'):
+                return cfg['client_id']
     try:
-        config = {}
-        if os.path.exists(CONFIG_PATH):
-            with open(CONFIG_PATH, 'r') as f:
-                config = json.load(f)
-            if config.get('client_id'):
-                return config['client_id']
-
-        response = requests.get("https://soundcloud.com/", headers=get_headers())
-        response.raise_for_status()
-        script_tags = re.findall(r'<script crossorigin src="([^"]+)"', response.text)
-        script_urls = [url for url in script_tags if url.startswith("https")]
-
-        if not script_urls:
-            raise ValueError("No script URLs found")
-
-        script_response = requests.get(script_urls[-1], headers=get_headers())
-        script_response.raise_for_status()
-        client_id_match = re.search(r',client_id:"([^"]+)"', script_response.text)
-        if not client_id_match:
-            raise ValueError("Client ID not found in script")
-
-        client_id = client_id_match.group(1)
-        config['client_id'] = client_id
+        resp = requests.get("https://soundcloud.com/", headers=HEADERS)
+        resp.raise_for_status()
+        urls = re.findall(r'<script crossorigin src="(https[^"]+)"]', resp.text)
+        script = requests.get(urls[-1], headers=HEADERS).text
+        cid = re.search(r',client_id:"([^"]+)"', script).group(1)
         with open(CONFIG_PATH, 'w') as f:
-            json.dump(config, f, indent=2)
-        return client_id
-    except Exception as e:
-        print(f"Error fetching client ID: {e}")
-        if os.path.exists(CONFIG_PATH):
-            with open(CONFIG_PATH, 'r') as f:
-                config = json.load(f)
-            return config.get('client_id', 'W00nmY7TLer3uyoEo1sWK3Hhke5Ahdl9')
-        return 'W00nmY7TLer3uyoEo1sWK3Hhke5Ahdl9'
+            json.dump({"client_id": cid}, f, indent=2)
+        return cid
+    except:
+        return "vjvE4M9RytEg9W09NH1ge2VyrZPUSKo5"
 
-def get_music_info(question, limit=10):
+
+def get_music_info(query, limit=10):
     try:
-        client_id = get_client_id()
-        response = requests.get(
+        cid = get_client_id()
+        r = requests.get(
             f"{API_BASE}/search/tracks",
-            params={
-                "q": question,
-                "variant_ids": "",
-                "facet": "genre",
-                "client_id": client_id,
-                "limit": limit,
-                "offset": 0,
-                "linked_partitioning": 1,
-                "app_locale": "en",
-            },
-            headers=get_headers()
+            params={"q": query, "client_id": cid, "limit": limit},
+            headers=HEADERS,
         )
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Error fetching music info: {e}")
+        r.raise_for_status()
+        return r.json()
+    except:
         return None
+
 
 def get_music_stream_url(track):
     try:
-        client_id = get_client_id()
-        api_url = f"{API_BASE}/resolve?url={track['permalink_url']}&client_id={client_id}"
-        response = requests.get(api_url, headers=get_headers())
-        response.raise_for_status()
-        data = response.json()
-        progressive_url = next(
-            (t['url'] for t in data.get('media', {}).get('transcodings', []) if t['format']['protocol'] == 'progressive'),
+        cid = get_client_id()
+        r = requests.get(
+            f"{API_BASE}/resolve",
+            params={"url": track['permalink_url'], "client_id": cid},
+            headers=HEADERS,
+        )
+        r.raise_for_status()
+        data = r.json()
+        prog = next(
+            (t['url'] for t in data['media']['transcodings'] if t['format']['protocol'] == 'progressive'),
             None
         )
-        if not progressive_url:
-            raise ValueError("No progressive transcoding URL found")
-        stream_response = requests.get(
-            f"{progressive_url}?client_id={client_id}&track_authorization={data.get('track_authorization', '')}",
-            headers=get_headers()
-        )
-        stream_response.raise_for_status()
-        return stream_response.json()['url']
-    except Exception as e:
-        print(f"Error getting music stream URL: {e}")
+        if not prog:
+            return None
+        r2 = requests.get(f"{prog}?client_id={cid}", headers=HEADERS)
+        r2.raise_for_status()
+        return r2.json().get('url')
+    except:
         return None
 
-# Discord View cho buttons
-class SoundCloudView(discord.ui.View):
-    def __init__(self, tracks, user_id):
-        super().__init__(timeout=300)  # 5 minutes timeout
-        self.tracks = tracks
-        self.user_id = user_id
+# --- Định nghĩa register_scl ---
+
+def register_scl(bot: commands.Bot):
+    """
+    Đăng ký lệnh /scl và xử lý nút tương tác cho bot Discord.
+    """
+    class SclView(ui.View):
+        def __init__(self, user_id: int, tracks: list, message: discord.Message):
+            super().__init__(timeout=120)
+            self.user_id = user_id
+            self.tracks = tracks
+            self.message = message
+            for idx, _ in enumerate(tracks):
+                btn = ui.Button(
+                    label=str(idx+1),
+                    style=discord.ButtonStyle.primary,
+                    custom_id=f"scl_{user_id}_{idx}"
+                )
+                self.add_item(btn)
         
-        # Tạo buttons (maximum 25 buttons per view)
-        for i in range(min(len(tracks), 25)):
-            button = discord.ui.Button(
-                label=str(i + 1),
-                style=discord.ButtonStyle.primary,
-                custom_id=f"scl_{i}"
-            )
-            button.callback = self.button_callback
-            self.add_item(button)
-    
-    async def button_callback(self, interaction: discord.Interaction):
-        try:
-            # Kiểm tra quyền truy cập
+        @ui.button(label="Cancel", style=discord.ButtonStyle.danger, custom_id="scl_cancel")
+        async def cancel(self, interaction: discord.Interaction, button: ui.Button):
+            if interaction.user.id != self.user_id:
+                return await interaction.response.send_message(
+                    "❌ Bạn không có quyền hủy!", ephemeral=True
+                )
+            await interaction.response.edit_message(content="🚫 Đã hủy tìm kiếm.", view=None)
+
+        async def interaction_check(self, interaction: discord.Interaction) -> bool:
+            cid = interaction.data.get('custom_id', '')
+            if cid == 'scl_cancel':
+                return True
+            if not cid.startswith(f"scl_{self.user_id}_"):
+                return False
             if interaction.user.id != self.user_id:
                 await interaction.response.send_message(
-                    "❌ Bạn không có quyền sử dụng nút này!",
-                    ephemeral=True
+                    "❌ Bạn không có quyền sử dụng nút này!", ephemeral=True
                 )
-                return
-            
-            # Parse button index
-            track_index = int(interaction.data['custom_id'].split('_')[1])
-            
-            # Kiểm tra index hợp lệ
-            if track_index >= len(self.tracks):
-                await interaction.response.send_message(
-                    "❌ Lựa chọn không hợp lệ!",
-                    ephemeral=True
-                )
-                return
-            
-            track = self.tracks[track_index]
-            
-            # Response với loading message
-            await interaction.response.edit_message(
-                content=f"🧭 Đang tải: **{track['title']}**\n👤 Nghệ sĩ: {track['user']['username']}\n\n⏳ Vui lòng chờ...",
+                return False
+
+            # Xử lý lựa chọn bài
+            parts = cid.split('_')
+            idx = int(parts[-1])
+            track = self.tracks[idx]
+            await interaction.response.defer(thinking=True)
+
+            # Hiển thị loading
+            await self.message.edit(
+                content=f"🧭 Đang tải **{track['title']}**...⏳",
                 view=None
             )
-            
-            # Lấy audio URL và thumbnail
+
             audio_url = get_music_stream_url(track)
-            thumbnail_url = track.get('artwork_url', '').replace("-large", "-t500x500")
-            
-            if not audio_url or not thumbnail_url:
-                await interaction.edit_original_response(
-                    content="🚫 Không tìm thấy nguồn audio hoặc thumbnail."
-                )
-                return
-            
-            # Tạo embed cho thông tin bài hát
+            thumb = track.get('artwork_url','').replace('-large','-t500x500')
+            if not audio_url:
+                return await self.message.edit(content="🚫 Không tìm thấy nguồn audio.")
+
+            resp = requests.get(audio_url, stream=True)
+            if int(resp.headers.get('Content-Length', 0)) > 50*1024*1024:
+                return await self.message.edit(content="🚫 File quá lớn (>50MB).")
+
+            data = resp.content
+            file = discord.File(io.BytesIO(data), filename=f"{track['title']}.mp3")
             embed = discord.Embed(
                 title=track['title'],
-                description=f"**Nghệ sĩ:** {track['user']['username']}\n**Lượt nghe:** {track['playback_count']:,}\n**Lượt thích:** {track['likes_count']:,}\n**Nguồn:** SoundCloud 🎶",
-                color=0xff7700  # SoundCloud orange color
+                description=(
+                    f"👤 {track['user']['username']}  | ▶️ {track['playback_count']:,} | ❤️ {track['likes_count']:,}"
+                )
             )
-            embed.set_thumbnail(url=thumbnail_url)
-            
-            # Tải audio về buffer
-            try:
-                resp = requests.get(audio_url, stream=True)
-                resp.raise_for_status()
-                audio_bytes = resp.content
-                audio_buffer = io.BytesIO(audio_bytes)
-                
-                # Tạo file Discord
-                audio_file = discord.File(
-                    audio_buffer, 
-                    filename=f"{track['title']}.mp3"
-                )
-                
-                # Gửi embed và file audio
-                await interaction.followup.send(
-                    embed=embed,
-                    file=audio_file
-                )
-                
-                # Xóa tin nhắn kết quả tìm kiếm
-                try:
-                    await interaction.delete_original_response()
-                except Exception:
-                    pass
-                    
-            except Exception as e:
-                await interaction.edit_original_response(
-                    content=f"🚫 Lỗi khi tải nhạc: {str(e)}"
-                )
-                
-        except Exception as e:
-            await interaction.response.send_message(
-                f"❌ Có lỗi xảy ra: {str(e)}",
-                ephemeral=True
+            if thumb:
+                embed.set_thumbnail(url=thumb)
+            await interaction.followup.send(embed=embed, file=file)
+            await self.message.delete()
+            return True
+
+    @bot.command(name="scl")
+    async def scl(ctx: commands.Context, *, keyword: str = None):
+        if not keyword:
+            return await ctx.send(
+                "🚫 Vui lòng nhập tên bài hát. Ví dụ: `/scl Bad Guy`"
             )
-            print(f"Error in button callback: {e}")
-    
-    async def on_timeout(self):
-        # Disable all buttons when timeout
-        for item in self.children:
-            item.disabled = True
-
-def register_scl(bot):
-    @bot.tree.command(name="scl", description="Tìm kiếm và tải nhạc từ SoundCloud")
-    async def scl(interaction: discord.Interaction, keyword: str):
-
-        keyword = keyword.strip()
-        music_info = get_music_info(keyword)
-        
-        if not music_info or not music_info.get('collection') or len(music_info['collection']) == 0:
-            await interaction.response.send_message("🚫 Không tìm thấy bài hát nào khớp với từ khóa.")
-            return
-
-        tracks = [track for track in music_info['collection'] if track.get('artwork_url')]
+        info = get_music_info(keyword)
+        if not info or not info.get('collection'):
+            return await ctx.send("🚫 Không tìm thấy bài nào khớp từ khóa.")
+        tracks = [t for t in info['collection'] if t.get('artwork_url')]
         if not tracks:
-            await interaction.response.send_message("🚫 Không tìm thấy bài hát nào có hình ảnh.")
-            return
+            return await ctx.send("🚫 Không tìm thấy bài nào có hình ảnh.")
 
-        embed = discord.Embed(
-            title="🎵 Kết quả tìm kiếm trên SoundCloud",
-            color=0xff7700
-        )
-        
-        description = ""
-        for i, track in enumerate(tracks):
-            description += f"**{i + 1}. {track['title']}**\n"
-            description += f"👤 Nghệ sĩ: {track['user']['username']}\n"
-            description += f"📊 Lượt nghe: {track['playback_count']:,} | Thích: {track['likes_count']:,}\n\n"
-        
-        description += "**💡 Chọn số bài hát bạn muốn tải!**"
-        embed.description = description
-
-        view = SoundCloudView(tracks, interaction.user.id)
-
-        await interaction.response.send_message(embed=embed, view=view)
+        lines = ["**🎵 Kết quả tìm kiếm trên SoundCloud**\n"]
+        for i, t in enumerate(tracks, 1):
+            lines.append(f"**{i}. {t['title']}**")
+            lines.append(f"👤 {t['user']['username']} | ▶️ {t['playback_count']:,} | ❤️ {t['likes_count']:,}\n")
+        lines.append("**💡 Bấm nút số bên dưới để tải bài bạn muốn!**")
+        # Gửi message với view chứa nút
+        placeholder = await ctx.send("\n".join(lines), view=None)
+        view = SclView(ctx.author.id, tracks, placeholder)
+        await placeholder.edit(view=view)
