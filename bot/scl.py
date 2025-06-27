@@ -113,11 +113,14 @@ class SoundCloudView(discord.ui.View):
                 return
             
             track = self.tracks[track_index]
+            artist = track['user']['username']
             
             # Response với loading message
-            await interaction.response.edit_message(
-                content=f"🧭 Đang tải: **{track['title']}**\n👤 Nghệ sĩ: {track['user']['username']}\n\n⏳ Vui lòng chờ...",
-                view=None
+            await interaction.edit_original_response(
+                content=f"🧭 Đang tải: **{track['title']}**\n👤 Nghệ sĩ: {artist}\n\n⏳ Vui lòng chờ...",
+                embed=None,
+                view=None,
+                attachments=[]
             )
             
             # Lấy audio URL và thumbnail
@@ -133,7 +136,7 @@ class SoundCloudView(discord.ui.View):
             # Tạo embed cho thông tin bài hát
             embed = discord.Embed(
                 title=track['title'],
-                description=f"**» Nghệ sĩ:** {track['user']['username']}\n**» Lượt nghe:** {track['playback_count']:,}\n**» Lượt thích:** {track['likes_count']:,}\n**» Nguồn:** SoundCloud 🎶",
+                description=f"**» Nghệ sĩ:** {artist}\n**» Lượt nghe:** {track['playback_count']:,}\n**» Lượt thích:** {track['likes_count']:,}\n**» Nguồn:** SoundCloud 🎶",
                 color=0xff7700  # SoundCloud orange color
             )
             embed.set_thumbnail(url=thumbnail_url)
@@ -142,6 +145,14 @@ class SoundCloudView(discord.ui.View):
             try:
                 resp = requests.get(audio_url, stream=True)
                 resp.raise_for_status()
+
+                content_length = int(resp.headers.get('Content-Length', 0))
+                if content_length > 8 * 1024 * 1024:  # Giới hạn 8MB
+                    await interaction.edit_original_response(
+                        content=f"🚫 File nhạc quá lớn (>8MB) nên không thể gửi qua Discord.\n🎧 **[Nhấn vào đây để tải nhạc]({audio_url})**",
+                    )
+                    return
+
                 audio_bytes = resp.content
                 audio_buffer = io.BytesIO(audio_bytes)
                 audio_buffer.name = f"{track['title']}.mp3"
@@ -190,14 +201,14 @@ def register_scl(bot):
             color=0xff7700
         )
         
-        description = ""
+        lines = []
         for i, track in enumerate(tracks):
-            description += f"**{i + 1}. {track['title']}**"
-            description += f"👤 Nghệ sĩ: {track['user']['username']}\n"
-            description += f"📊 Lượt nghe: {track['playback_count']:,} | Thích: {track['likes_count']:,}\n\n"
-        
-        description += "**💡 Chọn số bài hát bạn muốn tải!**"
-        embed.description = description
+            artist = track['user']['username']
+            lines.append(f"**{i + 1}. {track['title']}**")
+            lines.append(f"👤 Nghệ sĩ: {artist}\n")
+            lines.append(f"📊 Lượt nghe: {track['playback_count']:,} | Thích: {track['likes_count']:,}\n\n")
+
+        embed.description = "\n".join(lines) + "\n**💡 Chọn số bài hát bạn muốn tải!**"
 
         view = SoundCloudView(tracks, interaction.user.id)
 
