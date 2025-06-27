@@ -76,10 +76,11 @@ def get_music_stream_url(track):
 
 # Discord View cho buttons
 class SoundCloudView(discord.ui.View):
-    def __init__(self, tracks, user_id):
-        super().__init__(timeout=300)  # 5 minutes timeout
+    def __init__(self, tracks, user_id, interaction: discord.Interaction):
+        super().__init__(timeout=180)  # 3 minutes timeout
         self.tracks = tracks
         self.user_id = user_id
+        self.interaction = interaction
         
         # Tạo buttons (maximum 25 buttons per view)
         for i in range(min(len(tracks), 25)):
@@ -147,11 +148,8 @@ class SoundCloudView(discord.ui.View):
 
                 content_length = int(resp.headers.get('Content-Length', 0))
                 if content_length > 8 * 1024 * 1024:  # Giới hạn 8MB
-                    for item in self.children:
-                        item.disabled = True
                     await interaction.edit_original_response(
-                        content=f"🚫 File nhạc quá lớn (>8MB) nên không thể gửi qua Discord.\n🎧 **[Nhấn vào đây để tải nhạc]({audio_url})**",
-                        view=self
+                        content=f"🚫 File nhạc quá lớn (>8MB) nên không thể gửi qua Discord.\n🎧 **[Nhấn vào đây để tải nhạc]({audio_url})**"
                     )
                     return
 
@@ -181,9 +179,10 @@ class SoundCloudView(discord.ui.View):
             )
     
     async def on_timeout(self):
-        # Disable all buttons when timeout
-        for item in self.children:
-            item.disabled = True
+        try:
+            await self.interaction.delete_original_response()
+        except Exception:
+            pass  # Có thể message đã bị xóa tay hoặc lỗi quyền, nên bỏ qua
 
 def register_scl(bot):
     @bot.tree.command(name="scl", description="Tải nhạc từ SoundCloud")
@@ -215,6 +214,5 @@ def register_scl(bot):
 
         embed.description = "\n".join(lines) + "\n**💡 Chọn số bài hát bạn muốn tải!**"
 
-        view = SoundCloudView(tracks, interaction.user.id)
-
+        view = SoundCloudView(tracks, interaction.user.id, interaction)
         await interaction.response.send_message(embed=embed, view=view)
