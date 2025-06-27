@@ -192,7 +192,7 @@ def register_scl(bot):
         
         description = ""
         for i, track in enumerate(tracks):
-            description += f"**{i + 1}. {track['title']}**\n"
+            description += f"**{i + 1}. {track['title']}**"
             description += f"👤 Nghệ sĩ: {track['user']['username']}\n"
             description += f"📊 Lượt nghe: {track['playback_count']:,} | Thích: {track['likes_count']:,}\n\n"
         
