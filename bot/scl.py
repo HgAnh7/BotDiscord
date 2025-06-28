@@ -203,7 +203,7 @@ def register_scl(bot):
 
         embed = discord.Embed(color=0xff7700)
         
-        lines = ["🎵 Kết quả tìm kiếm trên SoundCloud\n"]
+        lines = ["**🎵 Kết quả tìm kiếm trên SoundCloud**\n"]
         for i, track in enumerate(tracks):
             lines.append(f"**{i + 1}. {track['title']}**")
             lines.append(f" » **Nghệ sĩ:** {track['user']['username']}")
