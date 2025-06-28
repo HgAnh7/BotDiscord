@@ -205,7 +205,7 @@ def register_scl(bot):
         
         lines = ["🎵 Kết quả tìm kiếm trên SoundCloud\n"]
         for i, track in enumerate(tracks):
-            lines.append(f"**{i + 1}. {track['title']}**")
+            lines.append(f"{i + 1}. {track['title']}")
             lines.append(f"» Nghệ sĩ: {track['user']['username']}")
             lines.append(f"» Lượt nghe: {track['playback_count']:,} | Thích: {track['likes_count']:,}**")
         lines.append("**💡 Chọn số bài hát bạn muốn tải!**")
