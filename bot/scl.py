@@ -133,10 +133,10 @@ class SoundCloudView(discord.ui.View):
             embed = discord.Embed(
                 title=track['title'],
                 description=(
-                    f"**» Nghệ sĩ:** {artist}\n"
-                    f"**» Lượt nghe:** {track['playback_count']:,}\n"
-                    f"**» Lượt thích:** {track['likes_count']:,}\n"
-                    "**» Nguồn:** SoundCloud 🎶"
+                    f"** » Nghệ sĩ:** {artist}\n"
+                    f"** » Lượt nghe:** {track['playback_count']:,}\n"
+                    f"** » Lượt thích:** {track['likes_count']:,}\n"
+                    "** » Nguồn:** SoundCloud 🎶"
                 ),
                 color=0xff7700  # SoundCloud orange color
             )
@@ -194,8 +194,8 @@ def register_scl(bot):
         for i, track in enumerate(tracks):
             lines.append(
                 f"**{i + 1}. {track['title']}**"
-                f" » Nghệ sĩ: {track['user']['username']}\n"
-                f" » Lượt nghe: {track['playback_count']:,} | Thích: {track['likes_count']:,}\n"
+                f"** » Nghệ sĩ:** {track['user']['username']}\n"
+                f"** » Lượt nghe:** {track['playback_count']:,} | **Thích:** {track['likes_count']:,}\n"
             )
         lines.append("**💡 Chọn số bài hát bạn muốn tải!**")
         embed.description = "\n".join(lines)
