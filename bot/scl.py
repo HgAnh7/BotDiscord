@@ -1,4 +1,3 @@
-# bot/scl.py
 import io
 import os
 import re
@@ -29,13 +28,14 @@ def get_client_id():
         urls = re.findall(r'<script crossorigin src="(https[^"]+)"', resp.text)
         script = requests.get(urls[-1], headers=HEADERS).text
         cid = re.search(r',client_id:"([^"]+)"', script).group(1)
+        
         with open(CONFIG_PATH, 'w') as f:
             json.dump({"client_id": cid}, f, indent=2)
         return cid
-    except:
+    except Exception:
         return "vjvE4M9RytEg9W09NH1ge2VyrZPUSKo5"
 
-def get_music_info(question, limit=10):
+def get_music_info(question, limit=10): # Tìm kiếm bài hát trên SoundCloud
     try:
         client_id = get_client_id()
         response = requests.get(
@@ -49,7 +49,7 @@ def get_music_info(question, limit=10):
         )
         response.raise_for_status()
         return response.json()
-    except:
+    except Exception:
         return None
 
 def get_music_stream_url(track):
@@ -59,19 +59,19 @@ def get_music_stream_url(track):
         response = requests.get(api_url, headers=HEADERS)
         response.raise_for_status()
         data = response.json()
+        
         progressive_url = next(
-            (t['url'] for t in data.get('media', {}).get('transcodings', []) if t['format']['protocol'] == 'progressive'),
+            (t['url'] for t in data.get('media', {}).get('transcodings', [])
+             if t['format']['protocol'] == 'progressive'),
             None
         )
         if not progressive_url:
             raise ValueError("No progressive transcoding URL found")
-        stream_response = requests.get(
-            f"{progressive_url}?client_id={client_id}",
-            headers=HEADERS
-        )
+            
+        stream_response = requests.get(f"{progressive_url}?client_id={client_id}", headers=HEADERS)
         stream_response.raise_for_status()
         return stream_response.json()['url']
-    except:
+    except Exception:
         return None
 
 # Discord View cho buttons
@@ -104,21 +104,15 @@ class SoundCloudView(discord.ui.View):
                 return
                 
             self.chosen = True
-            
-            # Parse button index
             track_index = int(interaction.data['custom_id'].split('_')[1])
             
             # Kiểm tra index hợp lệ
             if track_index >= len(self.tracks):
-                await interaction.followup.send(
-                    "❌ Lựa chọn không hợp lệ!",
-                    ephemeral=True
-                )
+                await interaction.followup.send("❌ Lựa chọn không hợp lệ!", ephemeral=True)
                 return
             
             track = self.tracks[track_index]
             artist = track['user']['username']
-            
             await interaction.edit_original_response(
                 content=f"🧭 Đang tải: **{track['title']}**\n👤 Nghệ sĩ: {artist}\n\n⏳ Vui lòng chờ...",
                 embed=None,
@@ -136,46 +130,41 @@ class SoundCloudView(discord.ui.View):
                 )
                 return
             
-            # Tạo embed cho thông tin bài hát
             embed = discord.Embed(
                 title=track['title'],
-                description=f"**» Nghệ sĩ:** {artist}\n**» Lượt nghe:** {track['playback_count']:,}\n**» Lượt thích:** {track['likes_count']:,}\n**» Nguồn:** SoundCloud 🎶",
+                description=(
+                    f"**» Nghệ sĩ:** {artist}\n"
+                    f"**» Lượt nghe:** {track['playback_count']:,}\n"
+                    f"**» Lượt thích:** {track['likes_count']:,}\n"
+                    "**» Nguồn:** SoundCloud 🎶"
+                ),
                 color=0xff7700  # SoundCloud orange color
             )
             embed.set_thumbnail(url=thumbnail_url)
             
             # Tải audio về buffer
-            try:
-                resp = requests.get(audio_url, stream=True)
-                resp.raise_for_status()
-
-                content_length = int(resp.headers.get('Content-Length', 0))
-                if content_length > 8 * 1024 * 1024:  # Giới hạn 8MB
-                    await interaction.edit_original_response(
-                        content=f"🚫 File nhạc quá lớn (>8MB) nên không thể gửi qua Discord.\n🎧 **[Nhấn vào đây để tải nhạc]({audio_url})**"
-                    )
-                    return
-
-                audio_bytes = resp.content
-                audio_buffer = io.BytesIO(audio_bytes)
-                audio_buffer.name = f"{track['title']}.mp3"
-                
-                # Gửi embed và file audio
+            resp = requests.get(audio_url, stream=True)
+            resp.raise_for_status()
+            content_length = int(resp.headers.get('Content-Length', 0))
+            if content_length > 8 * 1024 * 1024:  # Giới hạn 8MB
                 await interaction.edit_original_response(
-                    content=None,
-                    embed=embed,
-                    attachments=[discord.File(audio_buffer, filename=audio_buffer.name)],
+                    content=f"🚫 File nhạc quá lớn (>8MB) nên không thể gửi qua Discord.\n🎧 **[Nhấn vào đây để tải nhạc]({audio_url})**"
                 )
-                    
-            except Exception as e:
-                await interaction.edit_original_response(
-                    content=f"🚫 Lỗi khi tải nhạc: {str(e)}"
-                )
-                
+                return
+
+            audio_buffer = io.BytesIO(resp.content)
+            audio_buffer.name = f"{track['title']}.mp3"
+            
+            # Gửi embed và file audio
+            await interaction.edit_original_response(
+                content=None,
+                embed=embed,
+                attachments=[discord.File(audio_buffer, filename=audio_buffer.name)],
+            )
+
         except Exception as e:
             await interaction.followup.send(
-                f"❌ Có lỗi xảy ra: {str(e)}",
-                ephemeral=True
+                f"❌ Có lỗi xảy ra: {str(e)}", ephemeral=True
             )
     
     async def on_timeout(self):
@@ -183,12 +172,11 @@ class SoundCloudView(discord.ui.View):
             if not self.chosen:
                 await self.interaction.delete_original_response()
         except Exception:
-            pass  # Có thể message đã bị xóa tay hoặc lỗi quyền, nên bỏ qua
+            pass
 
 def register_scl(bot):
     @bot.tree.command(name="scl", description="Tải nhạc từ SoundCloud")
     async def scl(interaction: discord.Interaction, keyword: str):
-
         keyword = keyword.strip()
         music_info = get_music_info(keyword)
         
@@ -202,12 +190,11 @@ def register_scl(bot):
             return
 
         embed = discord.Embed(color=0xff7700)
-        
         lines = ["**🎵 Kết quả tìm kiếm trên SoundCloud**\n"]
         for i, track in enumerate(tracks):
             lines.append(f"**{i + 1}. {track['title']}**")
-            lines.append(f" » **Nghệ sĩ:** {track['user']['username']}")
-            lines.append(f" » **Lượt nghe:** {track['playback_count']:,} | **Thích:** {track['likes_count']:,}\n")
+            lines.append(f" » Nghệ sĩ: {track['user']['username']}")
+            lines.append(f" » Lượt nghe: {track['playback_count']:,} | Thích: {track['likes_count']:,}\n")
         lines.append("**💡 Chọn số bài hát bạn muốn tải!**")
         embed.description = "\n".join(lines)
 
