@@ -2,7 +2,7 @@ import io
 import os
 import re
 import json
-import discord
+
 import requests
 
 API_BASE = "https://api-v2.soundcloud.com"
